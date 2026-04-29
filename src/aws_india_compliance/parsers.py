@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import json
 import re
-import xml.etree.ElementTree as ET
 from typing import Any
+
+import defusedxml.ElementTree as ET
 
 MAX_TEMPLATE_SIZE = 10 * 1024 * 1024  # 10 MB
 
@@ -24,15 +25,9 @@ def _check_size(content: str) -> None:
         raise ValueError(f"Template exceeds maximum size of {MAX_TEMPLATE_SIZE // (1024 * 1024)} MB")
 
 
-def _safe_parse_xml(content: str) -> ET.Element:
-    """Parse XML with external entity resolution disabled (XXE protection)."""
-    # Disable external entities and DTD processing
-    parser = ET.XMLParser()
-    # ET.XMLParser in stdlib doesn't resolve external entities by default,
-    # but we explicitly forbid DTD-like patterns in input as defense-in-depth
-    if "<!ENTITY" in content or "<!DOCTYPE" in content:
-        raise ValueError("XML contains DTD/entity declarations which are not allowed")
-    return ET.fromstring(content, parser=parser)
+def _safe_parse_xml(content: str) -> Any:
+    """Parse XML with defusedxml — XXE, DTD, and entity expansion blocked."""
+    return ET.fromstring(content)
 
 
 # Service classification sets

@@ -20,7 +20,10 @@ from .domains import DPDP_DOMAINS, RBI_DOMAINS
 from .knowledge import search_live
 from .parsers import parse_cloudformation, parse_drawio, parse_terraform
 
-mcp = FastMCP("aws-india-compliance", host="0.0.0.0", port=8000, stateless_http=True)
+_MCP_HOST = os.environ.get("MCP_HOST", "127.0.0.1")
+_MCP_PORT = int(os.environ.get("MCP_PORT", "8000"))
+
+mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
 
 
 # ---- Tools ----

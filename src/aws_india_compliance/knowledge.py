@@ -87,11 +87,13 @@ def _extract_domain(url: str) -> str:
 def _fetch_text(url: str) -> str:
     """Fetch a URL and extract visible text.
 
-    Security: HTTPS only, response size capped, content-type validated,
-    rate-limited, with configurable caching.
+    Security: HTTPS only (scheme validated before open), response size
+    capped, content-type validated, rate-limited, with configurable caching.
     """
-    # Enforce HTTPS
-    if not url.startswith("https://"):
+    # Enforce HTTPS — reject file:/, ftp://, data:, and plain http://
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
         return ""
 
     # Check cache
@@ -107,7 +109,7 @@ def _fetch_text(url: str) -> str:
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "aws-india-compliance-mcp/0.1"})
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:  # noqa: S310 — scheme validated above
             # Validate content-type
             content_type = resp.headers.get("Content-Type", "").split(";")[0].strip().lower()
             if content_type not in ALLOWED_CONTENT_TYPES:

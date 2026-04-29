@@ -32,11 +32,11 @@ Control domain mappings are updated within 30 days of any published regulatory a
 
 This MCP server runs as a local stdio process — it communicates only with the MCP client that spawned it, not over a network. There is no HTTP endpoint exposed by default.
 
-If you deploy this server over HTTP/SSE (remote mode), you **must** secure it with authentication before exposing it:
+If you deploy this server over HTTP/SSE (remote mode), secure it with authentication before exposing it:
 
 - Use OAuth 2.1 (per the MCP specification) with your identity provider.
 - At minimum, restrict access with an API key passed via environment variable.
-- Never expose an unauthenticated MCP server to any network.
+- Do not expose an unauthenticated MCP server to any network.
 
 Tool-level authorization is not implemented — any authenticated client can invoke all seven tools. If you need tool-level restrictions, implement them in a proxy layer or MCP gateway.
 
@@ -48,7 +48,7 @@ The server requires AWS credentials with read access. Follow this priority order
 2. **AWS IAM Identity Center (SSO)** — Use `aws sso login --profile your-profile` and set `AWS_PROFILE` in the MCP config.
 3. **Environment variables** — Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_SESSION_TOKEN`. Use short-lived session credentials only.
 
-> **⚠ Never hardcode AWS credentials in the MCP config `env` block, source code, or version control.** Use `AWS_PROFILE` references or role-based access instead.
+> **Do not hardcode AWS credentials in the MCP config `env` block, source code, or version control.** Use `AWS_PROFILE` references or role-based access instead.
 
 ### Minimum IAM policy
 
@@ -195,12 +195,12 @@ In `claude_desktop_config.json`:
 - **Supported formats:** CloudFormation (JSON/YAML), Terraform (HCL/JSON), draw.io (XML).
 - **Maximum file size:** 10 MB per template.
 - **Static analysis only.** Templates are parsed for structure and resource declarations. No code is executed, no external references are fetched, no provisioning occurs.
-- **XML safety.** draw.io (XML) parsing uses a hardened parser with external entity resolution disabled (XXE protection). DTD processing is disabled.
+- **XML safety.** draw.io (XML) parsing uses `defusedxml`, which blocks external entity resolution (XXE), DTD processing, and entity expansion at the parser level.
 - **Untrusted templates.** Review any template from an untrusted source before parsing. While the parser does not execute code, maliciously crafted templates could produce misleading compliance results.
 
 ### Regulatory text search — network security (`search_regulatory_text`)
 
-- **HTTPS only.** All outbound requests use TLS 1.2+ to `https://dpdpact.in` and `https://rbi.org.in`. Plain HTTP is never used.
+- **HTTPS only.** All outbound requests use TLS 1.2+ to dpdpact.in and rbi.org.in over HTTPS. Plain HTTP is never used.
 - **Response validation.** Responses are validated for content-type (text/html, application/json) and size (max 5 MB). Unexpected content types are rejected.
 - **Timeouts.** Requests time out after 30 seconds. Failed requests return an error to the MCP client — they do not retry silently.
 - **Rate limiting.** Outbound calls are rate-limited to 10 requests per minute per target domain.

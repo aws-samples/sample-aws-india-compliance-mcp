@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1 — 2026-04-29
+
+### Security
+- Replaced stdlib `xml.etree.ElementTree` with `defusedxml` for draw.io XML parsing.
+  Resolves high-severity finding: native Python XML library is vulnerable to XXE attacks.
+  `defusedxml` blocks external entities, DTD processing, and entity expansion at the parser level.
+- Fixed B310 (Bandit): `urllib.request.urlopen` now validates URL scheme via `urlparse`
+  before opening, rejecting `file:/`, `ftp:/`, `data:`, and plain `http://` schemes.
+- Fixed B104 (Bandit): MCP server now binds to `127.0.0.1` by default instead of `0.0.0.0`.
+  Use `MCP_HOST=0.0.0.0` environment variable to bind to all interfaces when needed.
+- Fixed URL formatting in README that caused scanner false positives on URL validation.
+- Softened prescriptive language in README security guidance per inclusive language assessment.
+
+### Dependencies
+- Added `defusedxml>=0.7.1`.
+
 ## 0.1.0 — 2026-04-29
 
 Initial release.
