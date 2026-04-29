@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+.vscode/
+.kiro/specs/
+.kiro/settings/
+.kiro/steering/
+*.env
