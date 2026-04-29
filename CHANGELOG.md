@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.3.0 — 2026-04-29
+
+### SEBI CSCRF framework support
+- Added SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) as third regulatory framework
+- 6 SEBI control domains: Governance, Identification, Protection, Detection, Response, Recovery
+- SEBI Cloud Framework requirements mapped to AWS controls and guardrails
+- `is_sebi_regulated` parameter added to scan and assessment tools
+
+### Versioned control mappings manifest
+- Created `control_mappings.json` with detailed regulatory-to-AWS control mappings
+- Each domain includes: section references, AWS services, Config rules, and CT guardrails
+- Manifest tracks version, last_verified date, and source URLs per framework
+- DPDP Act: 10 domains with AWS Config rules and Control Tower guardrails mapped
+- RBI Master Direction: 7 domains mapped to AWS Config conformance pack rules
+- SEBI CSCRF: 6 domains mapped to AWS controls from SEBI Cloud Framework
+
+### New tool: check_regulatory_updates
+- Returns manifest metadata with last verified dates per framework
+- Lists regulatory source URLs for checking new circulars and amendments
+- Enables operators to identify when control mappings need updating
+
+### Expanded regulatory sources
+- Added sebi.gov.in to domain allowlist and search sources
+- Added cert-in.org.in to domain allowlist
+- `search_regulatory_text` now supports "sebi" framework filter
+- `list_control_domains` now supports "sebi" framework
+
+## 0.2.0 — 2026-04-29
+
+### New assessment checks (from STRIDE threat model)
+- Data residency check: flags resources outside Indian regions for RBI-regulated entities
+- S3 Object Lock check: flags audit/CloudTrail buckets without immutable retention
+- CloudWatch Log Group retention: flags groups with < 180 days retention (CERT-In)
+- CloudTrail CloudWatch Logs integration: flags trails not forwarding to CloudWatch
+- IAM role overly broad permissions: flags AdministratorAccess, IAMFullAccess, PowerUserAccess
+
+### Security hardening
+- Tool schema integrity: SHA-256 manifest logged at startup for tool poisoning detection
+- Domain allowlist enforcement in knowledge.py: outbound requests restricted to ALLOWED_SOURCE_DOMAINS
+- Explicit deny IAM policy documented in README for destructive operations
+- Deployment security guidance added to README (IMDSv2, network isolation, immutable containers)
+
+### New resource types scanned
+- AWS::Logs::LogGroup (CloudWatch Log Groups)
+- AWS::IAM::Role (attached policy analysis)
+
 ## 0.1.1 — 2026-04-29
 
 ### Security

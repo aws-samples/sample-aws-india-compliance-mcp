@@ -47,3 +47,14 @@ def test_assess_eks_no_secrets_encryption():
     result = assess(components, is_rbi=True)
     eks_gaps = [g for g in result["gaps"] if g["component"] == "cluster"]
     assert len(eks_gaps) >= 2  # secrets + public endpoint at minimum
+
+
+def test_assess_with_sebi():
+    components = [
+        {"name": "b", "type": "AWS::S3::Bucket", "category": "storage", "properties": {}},
+        {"name": "gd", "type": "AWS::GuardDuty::Detector", "category": "security", "properties": {}},
+    ]
+    result = assess(components, is_sebi=True)
+    assert result["sebi_posture"] is not None
+    assert result["sebi_posture"]["total"] == 6
+    assert result["sebi_posture"]["score"] > 0

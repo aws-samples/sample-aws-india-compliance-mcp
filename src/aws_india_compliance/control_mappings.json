@@ -1,0 +1,230 @@
+{
+  "manifest_version": "1.0.0",
+  "last_updated": "2026-04-29",
+  "frameworks": {
+    "dpdp": {
+      "name": "Digital Personal Data Protection Act 2023",
+      "version": "As enacted August 11, 2023",
+      "source_url": "https://dpdpact.in",
+      "last_verified": "2026-04-29",
+      "domains": {
+        "1": {
+          "name": "Lawful Processing and Consent Management",
+          "section": "Sections 4-6",
+          "type": "organizational",
+          "aws_controls": ["Amazon Cognito consent tracking", "Custom consent management via DynamoDB/S3"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "2": {
+          "name": "Data Minimization",
+          "section": "Section 4(2)",
+          "type": "organizational",
+          "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Data retention automation"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "3": {
+          "name": "Privacy Notices",
+          "section": "Section 5",
+          "type": "organizational",
+          "aws_controls": [],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "4": {
+          "name": "Data Principal Rights",
+          "section": "Sections 11-14",
+          "type": "organizational",
+          "aws_controls": ["API Gateway for data subject requests", "Lambda for automated responses"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "5": {
+          "name": "Breach Notification",
+          "section": "Section 8(5)",
+          "type": "technical",
+          "aws_controls": ["GuardDuty", "Security Hub", "CloudTrail", "EventBridge for automated alerting", "SNS for notifications"],
+          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled"],
+          "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"]
+        },
+        "6": {
+          "name": "Reasonable Security Safeguards",
+          "section": "Section 8(4)",
+          "type": "technical",
+          "aws_controls": ["KMS encryption", "S3 Block Public Access", "IAM least privilege", "VPC network isolation", "WAF", "Shield"],
+          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled"],
+          "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED", "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC"]
+        },
+        "7": {
+          "name": "Data Retention Limits",
+          "section": "Section 8(6)",
+          "type": "technical",
+          "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Backup retention policies"],
+          "config_rules": ["s3-lifecycle-policy-check", "dynamodb-table-encrypted-kms"],
+          "guardrails": ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"]
+        },
+        "8": {
+          "name": "Cross-Border Data Transfer",
+          "section": "Sections 16-17",
+          "type": "organizational",
+          "aws_controls": ["Region deny SCPs", "S3 replication controls"],
+          "config_rules": [],
+          "guardrails": ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"]
+        },
+        "9": {
+          "name": "Children's Data Protection",
+          "section": "Section 9",
+          "type": "organizational",
+          "aws_controls": ["Age verification via Cognito", "Parental consent workflows"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "10": {
+          "name": "Significant Data Fiduciary Obligations",
+          "section": "Section 10",
+          "type": "organizational",
+          "aws_controls": ["Audit Manager for DPIA", "AWS Config for continuous compliance"],
+          "config_rules": [],
+          "guardrails": []
+        }
+      }
+    },
+    "rbi": {
+      "name": "RBI Master Direction on IT Governance, Risk, Controls and Assurance Practices",
+      "version": "DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023)",
+      "source_url": "https://rbi.org.in/Scripts/BS_ViewMasterDirections.aspx",
+      "last_verified": "2026-04-29",
+      "domains": {
+        "1": {
+          "name": "IT Governance and Oversight",
+          "section": "Chapter I",
+          "type": "organizational",
+          "aws_controls": ["AWS Organizations", "Control Tower", "Service Catalog"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "2": {
+          "name": "IT Infrastructure and Service Management",
+          "section": "Chapter II",
+          "type": "technical",
+          "aws_controls": ["Systems Manager", "CloudWatch", "Auto Scaling", "Lambda DLQ"],
+          "config_rules": ["ec2-instance-managed-by-systems-manager", "ec2-stopped-instance", "ec2-volume-inuse-check"],
+          "guardrails": ["AWS-GR_EBS_OPTIMIZED_INSTANCE"]
+        },
+        "3": {
+          "name": "IT Risk Management",
+          "section": "Chapter III",
+          "type": "organizational",
+          "aws_controls": ["AWS Config", "Security Hub", "Inspector", "Audit Manager"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "4": {
+          "name": "Information Security",
+          "section": "Chapter IV",
+          "type": "technical",
+          "aws_controls": ["KMS", "IAM", "S3 Block Public Access", "RDS encryption", "EBS encryption"],
+          "config_rules": ["access-keys-rotated", "iam-password-policy", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "iam-user-mfa-enabled", "encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "kms-cmk-not-scheduled-for-deletion"],
+          "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK"]
+        },
+        "5": {
+          "name": "Cyber Security",
+          "section": "Chapter V",
+          "type": "technical",
+          "aws_controls": ["GuardDuty", "WAF", "Shield", "Network Firewall", "VPC Flow Logs"],
+          "config_rules": ["guardduty-enabled-centralized", "vpc-flow-logs-enabled", "restricted-ssh", "ec2-instances-in-vpc"],
+          "guardrails": ["AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"]
+        },
+        "6": {
+          "name": "Business Continuity and Disaster Recovery",
+          "section": "Chapter VI",
+          "type": "technical",
+          "aws_controls": ["AWS Backup", "S3 versioning", "RDS Multi-AZ", "DynamoDB PITR", "Cross-region replication"],
+          "config_rules": ["db-instance-backup-enabled", "dynamodb-pitr-enabled", "s3-bucket-versioning-enabled", "rds-multi-az-support"],
+          "guardrails": []
+        },
+        "7": {
+          "name": "Information Systems Audit",
+          "section": "Chapter VII",
+          "type": "technical",
+          "aws_controls": ["CloudTrail", "CloudWatch Logs", "S3 access logging", "Audit Manager"],
+          "config_rules": ["cloudtrail-enabled", "cloud-trail-log-file-validation-enabled", "cloud-trail-encryption-enabled", "cloudwatch-log-group-encrypted", "s3-bucket-logging-enabled"],
+          "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"]
+        }
+      }
+    },
+    "sebi": {
+      "name": "SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) / Cloud Framework",
+      "version": "Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024)",
+      "source_url": "https://www.sebi.gov.in/legal/circulars/aug-2024/cybersecurity-and-cyber-resilience-framework-cscrf-_85964.html",
+      "last_verified": "2026-04-29",
+      "domains": {
+        "1": {
+          "name": "Cyber Governance",
+          "section": "Section 3.1 / Principle 1",
+          "type": "organizational",
+          "aws_controls": ["AWS Organizations", "Control Tower", "Service Catalog", "Audit Manager"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "2": {
+          "name": "Cyber Risk Identification",
+          "section": "Section 3.2 / Principle 2-3",
+          "type": "technical",
+          "aws_controls": ["AWS Config", "Inspector", "Systems Manager", "Security Hub"],
+          "config_rules": ["ec2-instance-managed-by-systems-manager", "ec2-stopped-instance"],
+          "guardrails": []
+        },
+        "3": {
+          "name": "Cyber Protection",
+          "section": "Section 3.3 / Security IN the Cloud",
+          "type": "technical",
+          "aws_controls": ["KMS (BYOK)", "IAM least privilege", "MFA", "Network segmentation", "WAF", "Shield", "VPC", "S3 encryption", "RDS encryption"],
+          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "iam-policy-no-statements-with-admin-access", "mfa-enabled-for-iam-console-access", "vpc-flow-logs-enabled", "restricted-ssh"],
+          "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP"]
+        },
+        "4": {
+          "name": "Cyber Detection",
+          "section": "Section 3.4 / SOC Integration",
+          "type": "technical",
+          "aws_controls": ["GuardDuty", "Security Hub", "CloudWatch", "Detective", "SIEM integration"],
+          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloudwatch-alarm-action-check"],
+          "guardrails": []
+        },
+        "5": {
+          "name": "Cyber Response",
+          "section": "Section 3.5 / Incident Management",
+          "type": "technical",
+          "aws_controls": ["EventBridge", "Lambda", "SNS", "Systems Manager Incident Manager"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "6": {
+          "name": "Cyber Recovery",
+          "section": "Section 3.6 / BCP-DR",
+          "type": "technical",
+          "aws_controls": ["AWS Backup", "S3 versioning", "RDS Multi-AZ", "Cross-region replication", "DynamoDB PITR"],
+          "config_rules": ["db-instance-backup-enabled", "dynamodb-pitr-enabled", "s3-bucket-versioning-enabled"],
+          "guardrails": []
+        }
+      }
+    }
+  },
+  "regulatory_sources": {
+    "dpdp": [
+      {"url": "https://dpdpact.in", "type": "act_text"},
+      {"url": "https://egazette.gov.in", "type": "gazette_notifications"}
+    ],
+    "rbi": [
+      {"url": "https://rbi.org.in/Scripts/BS_ViewMasterDirections.aspx", "type": "master_directions"},
+      {"url": "https://rbi.org.in/Scripts/BS_CircularIndexDisplay.aspx", "type": "circulars"}
+    ],
+    "sebi": [
+      {"url": "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=2&smid=0", "type": "circulars"}
+    ],
+    "certin": [
+      {"url": "https://www.cert-in.org.in", "type": "advisories"}
+    ]
+  }
+}

@@ -1,60 +1,126 @@
-
-
 # AWS India Compliance MCP Server
 
-Assess your AWS infrastructure against India's Digital Personal Data Protection (DPDP) Act 2023 and the Reserve Bank of India (RBI) Master Direction on IT Governance, Risk, Controls and Assurance Practices 2023.
+An MCP server that assesses AWS infrastructure against three Indian regulatory frameworks:
 
-This is an MCP server. It works with any MCP-compatible client — Kiro, Claude Desktop, Cursor, or your own agents.
+- DPDP Act 2023 (Digital Personal Data Protection)
+- RBI Master Direction on IT Governance 2023
+- SEBI CSCRF 2024 (Cybersecurity and Cyber Resilience Framework)
 
-## What it does
+Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
-- **Scans your AWS account** using AWS Config to discover resources and their configurations, then checks each one against DPDP and RBI control domains.
-- **Scans your Control Tower** to find which governance controls are enabled, which are missing, and what you need to turn on for compliance.
-- **Parses architecture templates** (CloudFormation, Terraform, draw.io) and assesses them before you deploy.
-- **Searches regulatory text** from official Indian government sources at runtime — no stale bundled data.
+## Quick start
 
-## Regulatory versions
+```bash
+# Install
+pip install .
 
-This server assesses against:
+# Or with pinned dependencies
+pip install . -c constraints.txt
+```
 
-| Regulation | Version | Last mapping update |
+Add to `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "python3",
+      "args": ["-m", "aws_india_compliance.server"],
+      "env": {
+        "AWS_PROFILE": "your-sso-profile",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+For Claude Desktop, add the same block to `claude_desktop_config.json`.
+
+## Prerequisites
+
+- Python 3.10+
+- AWS Config recorder enabled in target accounts/regions
+- IAM credentials with read-only access (see IAM policy below)
+- For org-wide scans: a Config Aggregator name
+
+## Tools
+
+| Tool | Purpose |
+|---|---|
+| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Pass `aggregator_name` for org-wide scans. |
+| `scan_control_tower` | Enumerate enabled guardrails across OUs, recommend missing ones per framework. |
+| `parse_architecture` | Parse CloudFormation (JSON/YAML), Terraform (HCL), or draw.io (XML) templates. Max 10 MB. |
+| `assess_compliance` | Assess a component list against control domains. Accepts output from `parse_architecture`. |
+| `generate_report` | Full report with posture scores, gap list, and phased remediation timeline. |
+| `search_regulatory_text` | Search regulatory text from government sources. Falls back to bundled mappings when sites are unreachable. |
+| `list_control_domains` | List domains for a framework: `dpdp` (10), `rbi` (7), or `sebi` (6). |
+| `check_regulatory_updates` | Show manifest metadata, last verified dates, and source URLs for each framework. |
+
+## How scanning works
+
+1. AWS Config Advanced Query pulls resource configurations in a single API call.
+2. The scanner extracts compliance-relevant properties per resource type (encryption, public access, logging, retention, key rotation, etc.).
+3. Fallback API checks cover Security Hub, GuardDuty, CloudTrail, and WAF — services Config does not always track.
+4. The assessment engine evaluates each resource against applicable DPDP, RBI, and SEBI control domains.
+5. Results include risk-rated gaps, specific remediation steps, and regulatory section references.
+
+For org-wide scans, pass the Config Aggregator name (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
+
+## Resource checks
+
+| Resource | What gets checked |
+|---|---|
+| S3 | Encryption at rest, lifecycle policies, Block Public Access, versioning, access logging, Object Lock (for audit buckets) |
+| RDS | Storage encryption, public accessibility, Multi-AZ, audit logging |
+| DynamoDB | KMS encryption, TTL, point-in-time recovery |
+| Lambda | Secrets in environment variables, dead letter queue |
+| EC2 | Public IP assignment, IMDSv2 enforcement, EBS encryption |
+| EKS | Secrets envelope encryption, API server endpoint visibility, control plane logging |
+| ECS | Container Insights |
+| CloudTrail | Log file validation, KMS encryption, CloudWatch Logs integration |
+| KMS | Automatic key rotation for customer-managed keys |
+| API Gateway | WAF association |
+| CloudFront | WAF association, access logging |
+| SQS/SNS | Encryption at rest |
+| SageMaker | Direct internet access, KMS encryption, VPC configuration |
+| IAM Roles | Overprivileged policies (AdministratorAccess, PowerUserAccess, IAMFullAccess) |
+
+RBI-regulated scans additionally flag resources deployed outside ap-south-1 and ap-south-2 per the RBI Data Localization Circular 2018.
+
+## Control domains
+
+DPDP Act (10 domains): Lawful Processing, Data Minimization, Privacy Notices, Data Principal Rights, Breach Notification, Reasonable Security Safeguards, Data Retention Limits, Cross-Border Data Transfer, Children's Data Protection, Significant Data Fiduciary Obligations.
+
+RBI Master Direction (7 domains): IT Governance, IT Infrastructure, IT Risk Management, Information Security, Cyber Security, Business Continuity/DR, Information Systems Audit.
+
+SEBI CSCRF (6 domains): Cyber Governance, Cyber Risk Identification, Cyber Protection, Cyber Detection, Cyber Response, Cyber Recovery.
+
+## Regulatory version tracking
+
+| Framework | Version | Source |
 |---|---|---|
-| DPDP Act | 2023 (as enacted August 11, 2023) | 2026-04-01 |
-| RBI Master Direction | DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023) | 2026-04-01 |
+| DPDP Act | As enacted August 11, 2023 | dpdpact.in |
+| RBI Master Direction | DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023) | rbi.org.in |
+| SEBI CSCRF | Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024) | sebi.gov.in |
 
-Control domain mappings are updated within 30 days of any published regulatory amendment. Check the `CHANGELOG.md` for mapping revision history.
+Control mappings are maintained in `control_mappings.json` with `manifest_version`, `last_verified` dates, and source URLs per framework. Run `check_regulatory_updates` to see when mappings were last verified and where to check for new publications.
 
-## Security model
+## Security
 
-> **This server executes read-only operations against your AWS account and outbound HTTPS calls to regulatory sites. It does not modify any AWS resources.**
+This server performs read-only operations. It does not modify AWS resources.
 
-### Authentication
+**Transport:** stdio by default (local process, no network exposure). For remote deployment over HTTP, set `MCP_API_KEY` and use OAuth 2.1 or equivalent authentication.
 
-This MCP server runs as a local stdio process — it communicates only with the MCP client that spawned it, not over a network. There is no HTTP endpoint exposed by default.
+**Credentials:** Use IAM roles or SSO profiles. Do not hardcode credentials in config files or source code.
 
-If you deploy this server over HTTP/SSE (remote mode), secure it with authentication before exposing it:
+**Data handling:** No persistence, no telemetry, no caching by default. Scan results are held in memory and discarded on exit. Logs (stderr, INFO level) contain resource ARNs and type identifiers but not credential material or data values.
 
-- Use OAuth 2.1 (per the MCP specification) with your identity provider.
-- At minimum, restrict access with an API key passed via environment variable.
-- Do not expose an unauthenticated MCP server to any network.
+**XML parsing:** draw.io templates are parsed with `defusedxml`, which blocks XXE, DTD processing, and entity expansion.
 
-Tool-level authorization is not implemented — any authenticated client can invoke all seven tools. If you need tool-level restrictions, implement them in a proxy layer or MCP gateway.
-
-### AWS credential handling
-
-The server requires AWS credentials with read access. Follow this priority order:
-
-1. **IAM roles (recommended)** — If running on EC2, ECS, Lambda, or Cloud9, use the attached instance/task/execution role. No credentials to manage.
-2. **AWS IAM Identity Center (SSO)** — Use `aws sso login --profile your-profile` and set `AWS_PROFILE` in the MCP config.
-3. **Environment variables** — Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_SESSION_TOKEN`. Use short-lived session credentials only.
-
-> **Do not hardcode AWS credentials in the MCP config `env` block, source code, or version control.** Use `AWS_PROFILE` references or role-based access instead.
+**Outbound network:** HTTPS-only calls to regulatory sites (dpdpact.in, rbi.org.in, sebi.gov.in). Domain allowlist enforced. Response size capped at 5 MB. Rate-limited to 10 requests/minute per domain. 30-second timeout.
 
 ### Minimum IAM policy
-
-Use the following least-privilege policy. Do **not** use `AdministratorAccess` or `ReadOnlyAccess`.
-
-**Single-account scan:**
 
 ```json
 {
@@ -90,9 +156,11 @@ Use the following least-privilege policy. Do **not** use `AdministratorAccess` o
       "Sid": "ControlTower",
       "Effect": "Allow",
       "Action": [
+        "controltower:ListLandingZones",
+        "controltower:GetLandingZone",
         "controltower:ListEnabledControls",
-        "controltower:ListControls",
-        "controltower:GetControlOperation"
+        "organizations:ListRoots",
+        "organizations:ListOrganizationalUnitsForParent"
       ],
       "Resource": "*"
     }
@@ -100,178 +168,70 @@ Use the following least-privilege policy. Do **not** use `AdministratorAccess` o
 }
 ```
 
-**Org-wide scan (with Config Aggregator):** Add the above policy to a role in the management/delegated admin account, plus:
+For org-wide scans, add `config:SelectAggregateResourceConfig` on the aggregator ARN. Consider adding an explicit Deny statement for destructive actions (DeleteTrail, StopLogging, DeleteDetector, etc.).
 
-```json
-{
-  "Sid": "CrossAccountAggregator",
-  "Effect": "Allow",
-  "Action": [
-    "config:SelectAggregateResourceConfig",
-    "config:DescribeConfigurationAggregators"
-  ],
-  "Resource": "arn:aws:config:*:*:config-aggregator/*"
-}
+## Limitations
+
+**Regulatory text search for JS-rendered sites.** The `search_regulatory_text` tool fetches content from government websites using `urllib` and a lightweight HTML parser. Sites that render content via JavaScript (notably sebi.gov.in) may return limited or no text. When this happens, the tool falls back to the bundled `control_mappings.json` manifest, which contains domain structures, AWS control mappings, Config rules, and guardrails. Fallback results are tagged with `"source": "control_mappings_fallback"`. This does not affect `scan_aws_account`, `scan_control_tower`, `assess_compliance`, or `generate_report` — those tools use the bundled mappings directly.
+
+**Assessment scope.** The server evaluates technical controls that can be observed through AWS Config and direct API calls. Organizational controls (consent management, privacy notices, DPO appointment, DPIA processes) are flagged as gaps but cannot be verified programmatically. These require manual attestation.
+
+**Config recorder dependency.** Resources not tracked by AWS Config will not appear in scan results. Ensure the Config recorder is enabled and covers all resource types in the target region.
+
+**Template parsing.** CloudFormation YAML parsing requires `PyYAML` (lazy-imported). Terraform parsing uses regex extraction of `resource` blocks — it does not evaluate HCL expressions, modules, or data sources. draw.io parsing extracts labeled vertex cells only.
+
+**Data localization.** RBI data localization checks flag any resource outside ap-south-1 and ap-south-2. Global services (IAM, CloudFront, Route 53) and management-plane resources (Control Tower rules, EventBridge rules) will be flagged. These typically require documented exemptions rather than migration.
+
+**Single-process architecture.** The server runs as a single Python process. There is no distributed scanning, no persistent state, and no background workers.
+
+## Security scan results
+
+Last scan: April 29, 2026
+
+**Static analysis (bandit):** 1 finding. B310 (urllib.urlopen) — false positive. The code validates URL scheme is HTTPS and enforces a domain allowlist before calling `urlopen`. Documented with inline comment.
+
+**Dependency audit (pip-audit):** 0 vulnerabilities in application dependencies. 1 low-severity finding in pip itself (CVE-2026-3219, concatenated archive handling) — does not affect runtime.
+
+**Findings fixed in this session:** 6 bandit B110/B112 findings (silent exception handlers in fallback API checks). Added debug-level logging to all `except` blocks in `aws_scanner.py` and `control_tower.py`.
+
+## Project structure
+
 ```
-
-### Data handling
-
-- **No persistence.** The server does not write to disk, databases, or cloud storage. All scan results and compliance assessments are held in memory for the duration of the MCP session and discarded on exit.
-- **No telemetry.** No data is sent to any endpoint other than the MCP client that invoked the tool and the regulatory sites (HTTPS only, see below).
-- **Logging.** Logs are written to stderr at INFO level by default. Logs may contain AWS resource ARNs and resource type identifiers. They do **not** contain credential material, resource data values, or PII. Adjust log level via `LOG_LEVEL` environment variable.
-- **Compliance reports.** Generated reports (from `generate_report`) are returned to the MCP client in-memory. They are not cached or stored server-side.
-- **Template data.** Templates passed to `parse_architecture` are parsed in-memory and not retained after the response is returned.
-
-> This tool is designed to assess DPDP and RBI compliance — it follows the same data minimization and purpose limitation principles it evaluates.
-
-## Setup
-
-### Install with dependency verification
-
-```bash
-pip install . --require-hashes -r requirements.txt
+src/aws_india_compliance/
+  server.py            # MCP tool registration, entry point
+  assessment.py        # Compliance assessment engine (per-resource checks)
+  aws_scanner.py       # AWS Config query + fallback API checks
+  control_tower.py     # Control Tower scanner + guardrail mapping
+  parsers.py           # CloudFormation/Terraform/draw.io parsers
+  knowledge.py         # Live regulatory text search + fallback
+  domains.py           # Domain definitions + manifest loader
+  control_mappings.json # Versioned control-to-AWS mapping manifest
+tests/
+  test_assessment.py   # Assessment engine tests
+  test_aws_scanner.py  # Scanner tests (mocked boto3)
+  test_control_tower.py # Control Tower assessment tests
+  test_domains.py      # Domain definition + manifest tests
+  test_parsers.py      # Parser tests
 ```
-
-Or using the lock file:
-
-```bash
-pip install . -c constraints.txt
-```
-
-Dependencies are pinned with hashes in `requirements.txt`. Verify the SBOM at `sbom.json` (CycloneDX format) before deployment. See `CHANGELOG.md` for dependency update history.
-
-### Add to Kiro
-
-In `.kiro/settings/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "aws-india-compliance": {
-      "command": "python3",
-      "args": ["-m", "aws_india_compliance.server"],
-      "env": {
-        "AWS_PROFILE": "your-sso-profile",
-        "LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-### Add to Claude Desktop
-
-In `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "aws-india-compliance": {
-      "command": "python3",
-      "args": ["-m", "aws_india_compliance.server"],
-      "env": {
-        "AWS_PROFILE": "your-sso-profile",
-        "LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-## Tools
-
-| Tool | What it does |
-|---|---|
-| `scan_aws_account` | Scan resources via AWS Config, assess against DPDP + RBI |
-| `scan_control_tower` | Scan Control Tower controls, recommend missing ones |
-| `parse_architecture` | Parse CloudFormation/Terraform/draw.io templates (see input limits below) |
-| `assess_compliance` | Assess a set of components against control domains |
-| `generate_report` | Full report with posture scores and remediation timeline |
-| `search_regulatory_text` | Live HTTPS search from dpdpact.in and rbi.org.in |
-| `list_control_domains` | List DPDP (10) or RBI (7) control domains |
-
-### Template parsing — input validation (`parse_architecture`)
-
-- **Supported formats:** CloudFormation (JSON/YAML), Terraform (HCL/JSON), draw.io (XML).
-- **Maximum file size:** 10 MB per template.
-- **Static analysis only.** Templates are parsed for structure and resource declarations. No code is executed, no external references are fetched, no provisioning occurs.
-- **XML safety.** draw.io (XML) parsing uses `defusedxml`, which blocks external entity resolution (XXE), DTD processing, and entity expansion at the parser level.
-- **Untrusted templates.** Review any template from an untrusted source before parsing. While the parser does not execute code, maliciously crafted templates could produce misleading compliance results.
-
-### Regulatory text search — network security (`search_regulatory_text`)
-
-- **HTTPS only.** All outbound requests use TLS 1.2+ to dpdpact.in and rbi.org.in over HTTPS. Plain HTTP is never used.
-- **Response validation.** Responses are validated for content-type (text/html, application/json) and size (max 5 MB). Unexpected content types are rejected.
-- **Timeouts.** Requests time out after 30 seconds. Failed requests return an error to the MCP client — they do not retry silently.
-- **Rate limiting.** Outbound calls are rate-limited to 10 requests per minute per target domain.
-- **No caching by default.** Each search hits the live source. Set `REGULATORY_CACHE_TTL=3600` (seconds) to enable local in-memory caching if you want to reduce external calls.
-- **Fallback.** If a regulatory site is unreachable, the tool returns an explicit error with the domain and HTTP status — it does not fall back to stale data or alternative sources.
-
-## How the AWS scan works
-
-1. Queries AWS Config Advanced Query — one API call returns all resource configurations.
-2. Extracts compliance-relevant properties (encryption, public access, logging, retention, etc.) for each resource type.
-3. Falls back to direct API checks for Security Hub, GuardDuty, CloudTrail, and WAF (Config doesn't always track these).
-4. Runs each resource through the assessment engine against all applicable DPDP and RBI control domains.
-5. Returns gaps with risk ratings, specific remediation steps, and regulatory references.
-
-**Prerequisites:**
-- AWS Config recorder must be enabled in the target account/region.
-- For org-wide scans, provide a Config Aggregator name.
-- The IAM principal must have the minimum permissions listed above.
-
-## What it checks
-
-| Resource | DPDP Checks | RBI Checks |
-|---|---|---|
-| S3 | Encryption, lifecycle, public access block, versioning, logging | Same + cross-region replication |
-| DynamoDB | Encryption, TTL | Same + PITR |
-| RDS | Encryption, public access, backup retention | Same + Multi-AZ, audit logging |
-| Lambda | Secrets in env vars, DLQ | Same |
-| EC2 | Public IP, IMDSv2, EBS encryption | Same |
-| EKS | Secrets encryption, public endpoint, audit logging | Same |
-| ECS | Container Insights | Same |
-| API Gateway | WAF | Same |
-| CloudFront | WAF, access logging | Same |
-| SQS | Encryption, DLQ | Same |
-| SageMaker | Direct internet, encryption, VPC | Same |
-| KMS | Key rotation | Same |
-| CloudTrail | Log validation, encryption | Same |
-
-## Control domains
-
-### DPDP Act 2023
-
-| # | Domain |
-|---|---|
-| 1 | Lawful Processing and Consent Management |
-| 2 | Data Minimization |
-| 3 | Privacy Notices |
-| 4 | Data Principal Rights |
-| 5 | Breach Notification |
-| 6 | Reasonable Security Safeguards |
-| 7 | Data Retention Limits |
-| 8 | Cross-Border Data Transfer |
-| 9 | Children's Data Protection |
-| 10 | Significant Data Fiduciary Obligations |
-
-### RBI Master Direction 2023
-
-| # | Domain |
-|---|---|
-| 1 | IT Governance and Oversight |
-| 2 | IT Infrastructure and Service Management |
-| 3 | IT Risk Management |
-| 4 | Information Security |
-| 5 | Cyber Security |
-| 6 | Business Continuity and Disaster Recovery |
-| 7 | Information Systems Audit |
 
 ## Tests
 
 ```bash
-python3 -m pytest tests/ -v
+PYTHONPATH=src python3 -m pytest tests/ -v
 ```
+
+28 tests covering assessment logic, scanner component extraction, Control Tower gap analysis, domain definitions, manifest integrity, and all three parsers.
+
+## Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AWS_PROFILE` | — | AWS SSO profile name |
+| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `REGULATORY_CACHE_TTL` | `0` | Seconds to cache regulatory site responses. 0 = no caching. |
+| `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` for local, `streamable-http` for remote |
+| `MCP_HOST` | `127.0.0.1` | Host for HTTP transport |
+| `MCP_PORT` | `8000` | Port for HTTP transport |
 
 ## License
 

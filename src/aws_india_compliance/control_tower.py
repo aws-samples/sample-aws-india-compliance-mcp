@@ -7,37 +7,40 @@ controls based on compliance requirements.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from .domains import DPDP_DOMAINS, RBI_DOMAINS
+from .domains import DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
+
+_logger = logging.getLogger(__name__)
 
 # Control Tower control → compliance domain mapping
 CT_CONTROL_MAP: dict[str, dict] = {
-    "AWS-GR_ENCRYPTED_VOLUMES": {"dpdp": [6], "rbi": [4], "desc": "EBS volumes must be encrypted"},
-    "AWS-GR_EBS_OPTIMIZED_INSTANCE": {"dpdp": [6], "rbi": [2], "desc": "EC2 instances must be EBS-optimized"},
-    "AWS-GR_RDS_INSTANCE_PUBLIC_ACCESS_CHECK": {"dpdp": [6], "rbi": [4, 5], "desc": "RDS instances must not be public"},
-    "AWS-GR_RDS_STORAGE_ENCRYPTED": {"dpdp": [6], "rbi": [4], "desc": "RDS storage must be encrypted"},
-    "AWS-GR_RESTRICT_ROOT_USER_ACCESS_KEYS": {"dpdp": [6], "rbi": [4], "desc": "Root user must not have access keys"},
-    "AWS-GR_RESTRICT_ROOT_USER": {"dpdp": [6], "rbi": [4], "desc": "Root user actions restricted"},
-    "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED": {"dpdp": [6], "rbi": [4], "desc": "S3 buckets must not allow public read"},
-    "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED": {"dpdp": [6], "rbi": [4], "desc": "S3 buckets must not allow public write"},
-    "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED": {"dpdp": [6], "rbi": [7], "desc": "Audit bucket must be encrypted"},
-    "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED": {"dpdp": [5], "rbi": [7], "desc": "Audit bucket logging enabled"},
-    "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY": {"dpdp": [7], "rbi": [7], "desc": "Audit bucket has retention policy"},
-    "AWS-GR_LOG_GROUP_ENCRYPTED": {"dpdp": [5, 6], "rbi": [7], "desc": "CloudWatch log groups encrypted"},
-    "AWS-GR_CLOUDTRAIL_ENABLED": {"dpdp": [5], "rbi": [7], "desc": "CloudTrail must be enabled"},
-    "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED": {"dpdp": [5], "rbi": [7], "desc": "CloudTrail log validation enabled"},
-    "AWS-GR_REGION_DENY": {"dpdp": [8], "rbi": [], "desc": "Deny access to non-approved regions"},
-    "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS": {"dpdp": [6], "rbi": [4], "desc": "MFA required for console access"},
-    "AWS-GR_IAM_USER_MFA_ENABLED": {"dpdp": [6], "rbi": [4], "desc": "IAM users must have MFA"},
-    "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING": {"dpdp": [8], "rbi": [], "desc": "Restrict cross-region networking"},
-    "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED": {"dpdp": [6], "rbi": [5], "desc": "Lambda must not be public"},
-    "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP": {"dpdp": [6], "rbi": [5], "desc": "EC2 must not have public IP"},
-    "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON": {"dpdp": [5], "rbi": [7], "desc": "CloudTrail enabled in all regions"},
-    "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC": {"dpdp": [6], "rbi": [4], "desc": "S3 account-level public access blocked"},
-    "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK": {"dpdp": [6], "rbi": [4], "desc": "EBS snapshots not public"},
-    "AWS-GR_SAGEMAKER_NOTEBOOK_NO_DIRECT_INTERNET_ACCESS": {"dpdp": [6], "rbi": [5], "desc": "SageMaker no direct internet"},
-    "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED": {"dpdp": [6], "rbi": [5], "desc": "Subnets no auto-assign public IP"},
+    "AWS-GR_ENCRYPTED_VOLUMES": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "EBS volumes must be encrypted"},
+    "AWS-GR_EBS_OPTIMIZED_INSTANCE": {"dpdp": [6], "rbi": [2], "sebi": [], "desc": "EC2 instances must be EBS-optimized"},
+    "AWS-GR_RDS_INSTANCE_PUBLIC_ACCESS_CHECK": {"dpdp": [6], "rbi": [4, 5], "sebi": [3], "desc": "RDS instances must not be public"},
+    "AWS-GR_RDS_STORAGE_ENCRYPTED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "RDS storage must be encrypted"},
+    "AWS-GR_RESTRICT_ROOT_USER_ACCESS_KEYS": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "Root user must not have access keys"},
+    "AWS-GR_RESTRICT_ROOT_USER": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "Root user actions restricted"},
+    "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 buckets must not allow public read"},
+    "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 buckets must not allow public write"},
+    "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED": {"dpdp": [6], "rbi": [7], "sebi": [3], "desc": "Audit bucket must be encrypted"},
+    "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [4], "desc": "Audit bucket logging enabled"},
+    "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY": {"dpdp": [7], "rbi": [7], "sebi": [6], "desc": "Audit bucket has retention policy"},
+    "AWS-GR_LOG_GROUP_ENCRYPTED": {"dpdp": [5, 6], "rbi": [7], "sebi": [3, 4], "desc": "CloudWatch log groups encrypted"},
+    "AWS-GR_CLOUDTRAIL_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "desc": "CloudTrail must be enabled"},
+    "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2], "desc": "CloudTrail log validation enabled"},
+    "AWS-GR_REGION_DENY": {"dpdp": [8], "rbi": [], "sebi": [1], "desc": "Deny access to non-approved regions"},
+    "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "MFA required for console access"},
+    "AWS-GR_IAM_USER_MFA_ENABLED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "IAM users must have MFA"},
+    "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING": {"dpdp": [8], "rbi": [], "sebi": [1], "desc": "Restrict cross-region networking"},
+    "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "Lambda must not be public"},
+    "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "EC2 must not have public IP"},
+    "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "desc": "CloudTrail enabled in all regions"},
+    "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 account-level public access blocked"},
+    "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "EBS snapshots not public"},
+    "AWS-GR_SAGEMAKER_NOTEBOOK_NO_DIRECT_INTERNET_ACCESS": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "SageMaker no direct internet"},
+    "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "Subnets no auto-assign public IP"},
 }
 
 # Recommended controls per compliance domain
@@ -55,6 +58,16 @@ RECOMMENDED_RBI: dict[int, list[str]] = {
         "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK"],
     5: ["AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"],
     7: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"],
+}
+
+RECOMMENDED_SEBI: dict[int, list[str]] = {
+    1: ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"],
+    2: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED"],
+    3: ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED",
+        "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS",
+        "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"],
+    4: ["AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED", "AWS-GR_CLOUDTRAIL_ENABLED"],
+    6: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
 }
 
 
@@ -100,7 +113,7 @@ def scan_control_tower(region: str) -> dict[str, Any]:
                     for ou in page.get("OrganizationalUnits", []):
                         ou_targets.append({"id": ou["Id"], "name": ou.get("Name", ""), "arn": ou["Arn"]})
             except Exception:
-                pass
+                _logger.debug("Could not list OUs for parent %s", root["Id"])
         result["ous"] = ou_targets
 
         controls: list[dict] = []
@@ -116,6 +129,7 @@ def scan_control_tower(region: str) -> dict[str, Any]:
                             "status": ctrl.get("statusSummary", {}).get("status", ""),
                         })
             except Exception:
+                _logger.debug("Could not list controls for OU %s", ou.get("name", ""))
                 continue
         result["enabled_controls"] = controls
     except Exception as e:
@@ -124,8 +138,8 @@ def scan_control_tower(region: str) -> dict[str, Any]:
     return result
 
 
-def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = False) -> dict[str, Any]:
-    """Assess Control Tower controls against DPDP/RBI requirements.
+def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = False, is_sebi: bool = False) -> dict[str, Any]:
+    """Assess Control Tower controls against DPDP/RBI/SEBI requirements.
 
     Compares enabled controls against recommended controls for each
     compliance domain and generates gap analysis with recommendations.
@@ -134,6 +148,7 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
         ct_data: Output from scan_control_tower().
         is_sdf: Significant Data Fiduciary flag.
         is_rbi: RBI-regulated entity flag.
+        is_sebi: SEBI-regulated entity flag.
 
     Returns:
         Dict with posture scores, gaps, and recommended controls.
@@ -143,11 +158,13 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
     recommendations: list[dict] = []
     dpdp_covered: set[int] = set()
     rbi_covered: set[int] = set()
+    sebi_covered: set[int] = set()
 
     for ctrl_id in enabled_ids:
         mapping = CT_CONTROL_MAP.get(ctrl_id, {})
         dpdp_covered.update(mapping.get("dpdp", []))
         rbi_covered.update(mapping.get("rbi", []))
+        sebi_covered.update(mapping.get("sebi", []))
 
     # DPDP gaps
     for domain_num, rec_controls in RECOMMENDED_DPDP.items():
@@ -188,6 +205,26 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
                     "missing_controls": missing,
                 })
 
+    # SEBI gaps
+    if is_sebi:
+        for domain_num, rec_controls in RECOMMENDED_SEBI.items():
+            missing = [c for c in rec_controls if c not in enabled_ids]
+            if missing:
+                for ctrl_id in missing:
+                    m = CT_CONTROL_MAP.get(ctrl_id, {})
+                    recommendations.append({
+                        "control_id": ctrl_id, "description": m.get("desc", ctrl_id),
+                        "framework": "sebi", "domain": domain_num,
+                        "domain_name": SEBI_DOMAINS.get(domain_num, ""),
+                        "priority": "high" if domain_num in (3, 4) else "medium",
+                    })
+                gaps.append({
+                    "framework": "sebi", "domain": domain_num,
+                    "domain_name": SEBI_DOMAINS.get(domain_num, ""),
+                    "gap": f"Missing {len(missing)} Control Tower controls for {SEBI_DOMAINS.get(domain_num, '')}",
+                    "missing_controls": missing,
+                })
+
     # Landing zone checks
     lz = ct_data.get("landing_zone")
     if not lz:
@@ -209,4 +246,5 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
         "recommendations": unique_recs,
         "dpdp_posture": {"covered_domains": len(dpdp_covered), "total": 10, "score": round(len(dpdp_covered) / 10 * 100, 1)},
         "rbi_posture": {"covered_domains": len(rbi_covered), "total": 7, "score": round(len(rbi_covered) / 7 * 100, 1)} if is_rbi else None,
+        "sebi_posture": {"covered_domains": len(sebi_covered), "total": 6, "score": round(len(sebi_covered) / 6 * 100, 1)} if is_sebi else None,
     }

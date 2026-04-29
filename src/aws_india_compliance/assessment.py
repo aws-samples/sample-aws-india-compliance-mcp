@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from .domains import DPDP_DOMAINS, RBI_DOMAINS
+from .domains import DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
+
+_INDIAN_REGIONS = {"ap-south-1", "ap-south-2"}
 
 
-def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False) -> dict[str, Any]:
+def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False, is_sebi: bool = False) -> dict[str, Any]:
     """Run compliance assessment against DPDP and optionally RBI domains.
 
     Performs per-resource checks based on resource type and configuration
@@ -22,13 +24,15 @@ def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False) -
         components: List of component dicts (from parsers or AWS scanner).
         is_sdf: Whether the organization is a Significant Data Fiduciary.
         is_rbi: Whether the organization is RBI-regulated.
+        is_sebi: Whether the organization is SEBI-regulated.
 
     Returns:
-        Dict with gaps, dpdp_posture, rbi_posture, total_components, total_gaps.
+        Dict with gaps, dpdp_posture, rbi_posture, sebi_posture, total_components, total_gaps.
     """
     gaps: list[dict] = []
     dpdp_satisfied: set[int] = set()
     rbi_satisfied: set[int] = set()
+    sebi_satisfied: set[int] = set()
 
     has_guardduty = any("guardduty" in c["type"].lower() for c in components)
     has_securityhub = any("securityhub" in c["type"].lower() or "security_hub" in c["type"].lower() for c in components)
@@ -37,9 +41,10 @@ def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False) -
     has_waf = any("waf" in c["type"].lower() for c in components)
 
     def _gap(comp_name: str, fw: str, dom: int, risk: str, desc: str, fix: str, ref: str) -> None:
+        domain_map = {"dpdp": DPDP_DOMAINS, "rbi": RBI_DOMAINS, "sebi": SEBI_DOMAINS}
         gaps.append({
             "component": comp_name, "framework": fw, "domain": dom,
-            "domain_name": (DPDP_DOMAINS if fw == "dpdp" else RBI_DOMAINS).get(dom, ""),
+            "domain_name": domain_map.get(fw, DPDP_DOMAINS).get(dom, ""),
             "risk": risk, "gap": desc, "remediation": fix, "reference": ref,
         })
 
@@ -63,11 +68,23 @@ def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False) -
         _check_kms(name, rtype, p, is_rbi, _gap)
         _check_cloudtrail(name, rtype, p, is_rbi, _gap)
         _check_sns(name, rtype, p, _gap)
+        _check_cloudwatch_logs(name, rtype, p, is_rbi, _gap)
+        _check_iam_role(name, rtype, p, is_rbi, _gap)
+
+        # Data residency check for RBI-regulated entities
+        region = comp.get("region", "")
+        if is_rbi and region and region not in _INDIAN_REGIONS and region != "global":
+            _gap(name, "rbi", 4, "high",
+                 f"Resource '{name}' ({rtype}) deployed in {region}, outside India",
+                 "Deploy in ap-south-1 or ap-south-2 for RBI data localization",
+                 "RBI Data Localization Circular 2018")
 
         if cat == "security":
             dpdp_satisfied.add(6)
             if is_rbi:
                 rbi_satisfied.update([3, 4])
+        if is_sebi and cat == "security":
+            sebi_satisfied.update([3, 4])
 
     # Architecture-level checks
     if has_guardduty:
@@ -98,17 +115,31 @@ def assess(components: list[dict], is_sdf: bool = False, is_rbi: bool = False) -
     if is_rbi:
         rbi_satisfied.update([1, 2, 6])
 
+    # SEBI architecture-level checks
+    if is_sebi:
+        if has_guardduty or has_securityhub:
+            sebi_satisfied.add(4)
+        if has_cloudtrail:
+            sebi_satisfied.add(2)
+        if has_kms:
+            sebi_satisfied.add(3)
+        if has_waf:
+            sebi_satisfied.add(3)
+        sebi_satisfied.update([1, 5, 6])  # Governance, Response, Recovery — org-level
+
     if is_sdf:
         _gap("organization", "dpdp", 10, "high", "SDF must appoint DPO and conduct DPIA",
              "Appoint DPO, conduct annual DPIA", "DPDP Act Section 10(2)")
 
     dpdp_score = len(dpdp_satisfied) / 10 * 100
     rbi_score = len(rbi_satisfied) / 7 * 100 if is_rbi else None
+    sebi_score = len(sebi_satisfied) / 6 * 100 if is_sebi else None
 
     return {
         "gaps": gaps,
         "dpdp_posture": {"satisfied": len(dpdp_satisfied), "total": 10, "score": round(dpdp_score, 1)},
         "rbi_posture": {"satisfied": len(rbi_satisfied), "total": 7, "score": round(rbi_score, 1)} if is_rbi else None,
+        "sebi_posture": {"satisfied": len(sebi_satisfied), "total": 6, "score": round(sebi_score, 1)} if is_sebi else None,
         "total_components": len(components),
         "total_gaps": len(gaps),
     }
@@ -134,6 +165,11 @@ def _check_s3(name: str, rtype: str, p: dict, is_rbi: bool, has_kms: bool,
         gap(name, "rbi", 6, "medium", f"S3 '{name}' lacks versioning for data recovery", "Enable versioning", "RBI MD Chapter VI")
     if not p.get("access_logging") and is_rbi:
         gap(name, "rbi", 7, "medium", f"S3 '{name}' lacks access logging", "Enable server access logging", "RBI MD Chapter VII")
+    # Audit bucket immutability check (CERT-In 180-day log retention)
+    if is_rbi and ("cloudtrail" in name.lower() or "audit" in name.lower() or "log" in name.lower()):
+        if not p.get("object_lock"):
+            gap(name, "rbi", 7, "medium", f"S3 audit bucket '{name}' lacks Object Lock for immutable retention",
+                "Enable S3 Object Lock to meet CERT-In 180-day log retention", "CERT-In Directions 2022")
 
 
 def _check_dynamodb(name: str, rtype: str, p: dict, is_rbi: bool, gap: Any) -> None:
@@ -267,6 +303,9 @@ def _check_cloudtrail(name: str, rtype: str, p: dict, is_rbi: bool, gap: Any) ->
             gap(name, "rbi", 7, "medium", f"CloudTrail '{name}' no log validation", "Enable validation", "RBI MD Chapter VII")
     if not p.get("encryption") and is_rbi:
         gap(name, "rbi", 7, "medium", f"CloudTrail '{name}' logs not encrypted", "Enable KMS encryption for trail", "RBI MD Chapter VII")
+    if not p.get("cloudwatch_logs"):
+        gap(name, "dpdp", 5, "medium", f"CloudTrail '{name}' not forwarding to CloudWatch Logs",
+            "Enable CloudWatch Logs integration for real-time alerting", "CERT-In 6-hour reporting")
 
 
 def _check_sns(name: str, rtype: str, p: dict, gap: Any) -> None:
@@ -274,3 +313,29 @@ def _check_sns(name: str, rtype: str, p: dict, gap: Any) -> None:
         return
     if not p.get("encryption"):
         gap(name, "dpdp", 6, "low", f"SNS '{name}' lacks encryption", "Enable SSE-KMS", "DPDP Act Section 8(4)")
+
+
+def _check_cloudwatch_logs(name: str, rtype: str, p: dict, is_rbi: bool, gap: Any) -> None:
+    if "Logs::LogGroup" not in rtype:
+        return
+    retention = p.get("retention_days", 0)
+    if is_rbi and retention < 180:
+        gap(name, "rbi", 7, "medium",
+            f"CloudWatch LogGroup '{name}' retention {retention} days (CERT-In requires 180)",
+            "Set retention to at least 180 days", "CERT-In Directions 2022")
+
+
+def _check_iam_role(name: str, rtype: str, p: dict, is_rbi: bool, gap: Any) -> None:
+    if "IAM::Role" not in rtype:
+        return
+    policies = p.get("attached_policies", [])
+    dangerous = {"AdministratorAccess", "IAMFullAccess", "PowerUserAccess"}
+    for pol in policies:
+        if pol in dangerous:
+            gap(name, "dpdp", 6, "critical",
+                f"IAM role '{name}' has overly broad policy: {pol}",
+                "Replace with least-privilege custom policy", "DPDP Act Section 8(4)")
+            if is_rbi:
+                gap(name, "rbi", 4, "critical",
+                    f"IAM role '{name}' has dangerous policy: {pol}",
+                    "Implement least-privilege IAM", "RBI MD Chapter IV")

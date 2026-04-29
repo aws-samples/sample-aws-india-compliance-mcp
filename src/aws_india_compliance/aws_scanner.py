@@ -9,9 +9,12 @@ GuardDuty, CloudTrail, WAF) that Config may not track.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from .parsers import classify_service
+
+_logger = logging.getLogger(__name__)
 
 # Resource types to query from AWS Config
 CONFIG_RESOURCE_TYPES: list[str] = [
@@ -25,6 +28,7 @@ CONFIG_RESOURCE_TYPES: list[str] = [
     "AWS::Redshift::Cluster", "AWS::EFS::FileSystem",
     "AWS::SageMaker::NotebookInstance", "AWS::SageMaker::Endpoint",
     "AWS::Kinesis::Stream", "AWS::Events::Rule",
+    "AWS::Logs::LogGroup",
 ]
 
 
@@ -68,6 +72,10 @@ def config_to_component(resource: dict) -> dict[str, Any]:
         _extract_kms_props(config, props)
     elif "CloudTrail::Trail" in rtype:
         _extract_cloudtrail_props(config, props)
+    elif "IAM::Role" in rtype:
+        _extract_iam_role_props(config, props)
+    elif "Logs::LogGroup" in rtype:
+        _extract_log_group_props(config, props)
     elif "EFS::FileSystem" in rtype:
         if config.get("encrypted"):
             props["encryption"] = "encrypted"
@@ -166,6 +174,8 @@ def _extract_s3_props(config: dict, props: dict) -> None:
         props["versioning"] = True
     if config.get("loggingConfiguration", {}).get("destinationBucketName"):
         props["access_logging"] = True
+    if config.get("objectLockConfiguration", {}).get("objectLockEnabled") == "Enabled":
+        props["object_lock"] = True
 
 
 def _extract_dynamodb_props(config: dict, props: dict) -> None:
@@ -268,6 +278,15 @@ def _extract_cloudtrail_props(config: dict, props: dict) -> None:
         props["cloudwatch_logs"] = True
 
 
+def _extract_iam_role_props(config: dict, props: dict) -> None:
+    policies = config.get("attachedManagedPolicies", [])
+    props["attached_policies"] = [p.get("policyName", "") for p in policies]
+
+
+def _extract_log_group_props(config: dict, props: dict) -> None:
+    props["retention_days"] = config.get("retentionInDays", 0)
+
+
 # ---- Fallback API checks ----
 
 def _fallback_security_hub(session: Any, region: str, components: list[dict]) -> None:
@@ -280,8 +299,8 @@ def _fallback_security_hub(session: Any, region: str, components: list[dict]) ->
             "name": "SecurityHub", "type": "AWS::SecurityHub::Hub", "category": "security",
             "properties": {}, "region": region, "account_id": "",
         })
-    except Exception:
-        pass
+    except Exception:  # noqa: B110 — expected when service not enabled
+        _logger.debug("SecurityHub not available in %s", region)
 
 
 def _fallback_guardduty(session: Any, region: str, components: list[dict]) -> None:
@@ -294,8 +313,8 @@ def _fallback_guardduty(session: Any, region: str, components: list[dict]) -> No
                 "name": "GuardDuty", "type": "AWS::GuardDuty::Detector", "category": "security",
                 "properties": {}, "region": region, "account_id": "",
             })
-    except Exception:
-        pass
+    except Exception:  # noqa: B110 — expected when service not enabled
+        _logger.debug("GuardDuty not available in %s", region)
 
 
 def _fallback_cloudtrail(session: Any, region: str, components: list[dict]) -> None:
@@ -309,8 +328,8 @@ def _fallback_cloudtrail(session: Any, region: str, components: list[dict]) -> N
                 "name": trails[0].get("Name", "CloudTrail"), "type": "AWS::CloudTrail::Trail",
                 "category": "security", "properties": {}, "region": region, "account_id": "",
             })
-    except Exception:
-        pass
+    except Exception:  # noqa: B110 — expected when service not enabled
+        _logger.debug("CloudTrail not available in %s", region)
 
 
 def _fallback_waf(session: Any, region: str, components: list[dict]) -> None:
@@ -323,5 +342,5 @@ def _fallback_waf(session: Any, region: str, components: list[dict]) -> None:
                 "name": "WAF", "type": "AWS::WAFv2::WebACL", "category": "security",
                 "properties": {}, "region": region, "account_id": "",
             })
-    except Exception:
-        pass
+    except Exception:  # noqa: B110 — expected when service not enabled
+        _logger.debug("WAF not available in %s", region)
