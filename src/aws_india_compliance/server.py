@@ -229,6 +229,10 @@ def scan_control_tower_tool(region: str = "ap-south-1", is_significant_data_fidu
 
 def main() -> None:
     """Run the MCP server."""
+    import logging
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format="%(levelname)s %(name)s: %(message)s")
+
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     mcp.run(transport=transport)
 

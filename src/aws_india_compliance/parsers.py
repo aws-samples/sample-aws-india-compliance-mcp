@@ -3,6 +3,10 @@
 Extracts infrastructure components from CloudFormation YAML/JSON,
 Terraform HCL, and draw.io XML files. Each parser returns a list
 of component dicts with name, type, category, and properties.
+
+Security:
+- Input size limited to 10 MB.
+- XML parsing uses defused parser (XXE/DTD disabled).
 """
 
 from __future__ import annotations
@@ -11,6 +15,25 @@ import json
 import re
 import xml.etree.ElementTree as ET
 from typing import Any
+
+MAX_TEMPLATE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+def _check_size(content: str) -> None:
+    """Reject input exceeding MAX_TEMPLATE_SIZE."""
+    if len(content.encode("utf-8")) > MAX_TEMPLATE_SIZE:
+        raise ValueError(f"Template exceeds maximum size of {MAX_TEMPLATE_SIZE // (1024 * 1024)} MB")
+
+
+def _safe_parse_xml(content: str) -> ET.Element:
+    """Parse XML with external entity resolution disabled (XXE protection)."""
+    # Disable external entities and DTD processing
+    parser = ET.XMLParser()
+    # ET.XMLParser in stdlib doesn't resolve external entities by default,
+    # but we explicitly forbid DTD-like patterns in input as defense-in-depth
+    if "<!ENTITY" in content or "<!DOCTYPE" in content:
+        raise ValueError("XML contains DTD/entity declarations which are not allowed")
+    return ET.fromstring(content, parser=parser)
+
 
 # Service classification sets
 _STORAGE = {"s3", "rds", "dynamodb", "redshift", "efs", "ebs", "aurora", "elasticache"}
@@ -47,7 +70,9 @@ def parse_cloudformation(content: str) -> list[dict[str, Any]]:
     """Parse a CloudFormation YAML or JSON template.
 
     Returns a list of component dicts with name, type, category, properties.
+    Raises ValueError if input exceeds 10 MB.
     """
+    _check_size(content)
     import yaml  # lazy — only needed for CF parsing
 
     try:
@@ -74,7 +99,9 @@ def parse_terraform(content: str) -> list[dict[str, Any]]:
     """Parse Terraform HCL using basic regex extraction.
 
     Returns a list of component dicts with name, type, category, properties.
+    Raises ValueError if input exceeds 10 MB.
     """
+    _check_size(content)
     components: list[dict[str, Any]] = []
     for m in re.finditer(r'resource\s+"([^"]+)"\s+"([^"]+)"', content):
         rtype, name = m.group(1), m.group(2)
@@ -91,8 +118,10 @@ def parse_drawio(content: str) -> list[dict[str, Any]]:
     """Parse a draw.io XML file and extract labeled components.
 
     Returns a list of component dicts with name, type, category, properties.
+    Raises ValueError if input exceeds 10 MB or contains XXE patterns.
     """
-    root = ET.fromstring(content)
+    _check_size(content)
+    root = _safe_parse_xml(content)
     components: list[dict[str, Any]] = []
     for cell in root.iter("mxCell"):
         value = cell.get("value", "").strip()
