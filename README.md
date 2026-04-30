@@ -8,6 +8,11 @@ An MCP server that assesses AWS infrastructure against three Indian regulatory f
 
 Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
+**Important:** This tool provides automated assessment guidance based on
+  published regulatory frameworks. It does not constitute legal advice or
+  compliance certification. Organizations should consult qualified compliance
+  and legal professionals for definitive regulatory compliance determinations.
+
 ## Quick start
 
 ```bash
@@ -208,6 +213,11 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` for local, `streamable-http` for remote |
 | `MCP_HOST` | `127.0.0.1` | Host for HTTP transport |
 | `MCP_PORT` | `8000` | Port for HTTP transport |
+
+**Disclaimer:** This is a sample tool for educational and assessment purposes.
+  It performs read-only operations and does not modify AWS resources.
+  Users should validate compliance findings against their specific regulatory
+  requirements and consult qualified compliance professionals.
 
 ## License
 
