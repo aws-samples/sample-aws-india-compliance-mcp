@@ -170,30 +170,6 @@ This server performs read-only operations. It does not modify AWS resources.
 
 For org-wide scans, add `config:SelectAggregateResourceConfig` on the aggregator ARN. Consider adding an explicit Deny statement for destructive actions (DeleteTrail, StopLogging, DeleteDetector, etc.).
 
-## Limitations
-
-**Regulatory text search for JS-rendered sites.** The `search_regulatory_text` tool fetches content from government websites using `urllib` and a lightweight HTML parser. Sites that render content via JavaScript (notably sebi.gov.in) may return limited or no text. When this happens, the tool falls back to the bundled `control_mappings.json` manifest, which contains domain structures, AWS control mappings, Config rules, and guardrails. Fallback results are tagged with `"source": "control_mappings_fallback"`. This does not affect `scan_aws_account`, `scan_control_tower`, `assess_compliance`, or `generate_report` — those tools use the bundled mappings directly.
-
-**Assessment scope.** The server evaluates technical controls that can be observed through AWS Config and direct API calls. Organizational controls (consent management, privacy notices, DPO appointment, DPIA processes) are flagged as gaps but cannot be verified programmatically. These require manual attestation.
-
-**Config recorder dependency.** Resources not tracked by AWS Config will not appear in scan results. Ensure the Config recorder is enabled and covers all resource types in the target region.
-
-**Template parsing.** CloudFormation YAML parsing requires `PyYAML` (lazy-imported). Terraform parsing uses regex extraction of `resource` blocks — it does not evaluate HCL expressions, modules, or data sources. draw.io parsing extracts labeled vertex cells only.
-
-**Data localization.** RBI data localization checks flag any resource outside ap-south-1 and ap-south-2. Global services (IAM, CloudFront, Route 53) and management-plane resources (Control Tower rules, EventBridge rules) will be flagged. These typically require documented exemptions rather than migration.
-
-**Single-process architecture.** The server runs as a single Python process. There is no distributed scanning, no persistent state, and no background workers.
-
-## Security scan results
-
-Last scan: April 29, 2026
-
-**Static analysis (bandit):** 1 finding. B310 (urllib.urlopen) — false positive. The code validates URL scheme is HTTPS and enforces a domain allowlist before calling `urlopen`. Documented with inline comment.
-
-**Dependency audit (pip-audit):** 0 vulnerabilities in application dependencies. 1 low-severity finding in pip itself (CVE-2026-3219, concatenated archive handling) — does not affect runtime.
-
-**Findings fixed in this session:** 6 bandit B110/B112 findings (silent exception handlers in fallback API checks). Added debug-level logging to all `except` blocks in `aws_scanner.py` and `control_tower.py`.
-
 ## Project structure
 
 ```

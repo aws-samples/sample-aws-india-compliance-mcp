@@ -1,12 +1,40 @@
+# Python
 __pycache__/
 *.pyc
-.pytest_cache/
+*.pyo
 *.egg-info/
 dist/
 build/
+.eggs/
+
+# Virtual environment
 .venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
 .vscode/
-.kiro/specs/
-.kiro/settings/
-.kiro/steering/
+.idea/
+
+# Kiro workspace config
+.kiro/
+
+# Environment and secrets
 *.env
+.env.*
+
+# Scan reports (contain account IDs and resource names)
+AWS_Compliance_Report*.md
+
+# Internal development notes
+research.md
+Success.md
+
+# OS files
+.DS_Store
+Thumbs.db
