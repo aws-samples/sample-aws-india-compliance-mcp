@@ -1,24 +1,25 @@
 {
-  "manifest_version": "1.0.0",
-  "last_updated": "2026-04-29",
+  "manifest_version": "1.1.0",
+  "last_updated": "2026-04-30",
   "frameworks": {
     "dpdp": {
-      "name": "Digital Personal Data Protection Act 2023",
-      "version": "As enacted August 11, 2023",
+      "name": "Digital Personal Data Protection Act 2023 + Rules 2025",
+      "version": "Act 2023 + Rules notified November 14, 2025",
       "source_url": "https://dpdpact.in",
-      "last_verified": "2026-04-29",
+      "last_verified": "2026-04-30",
       "domains": {
         "1": {
           "name": "Lawful Processing and Consent Management",
-          "section": "Sections 4-6",
+          "section": "Act Sections 4-6, Rules 4",
           "type": "organizational",
-          "aws_controls": ["Amazon Cognito consent tracking", "Custom consent management via DynamoDB/S3"],
+          "aws_controls": ["Amazon Cognito consent tracking", "Custom consent management via DynamoDB/S3", "Consent Manager integration via API Gateway", "DynamoDB for 7-year consent record retention"],
           "config_rules": [],
-          "guardrails": []
+          "guardrails": [],
+          "rules_2025_notes": "Rule 4 introduces Consent Manager framework: must be India-incorporated, INR 2Cr net worth, interoperable platform, 7-year consent record retention, no subcontracting. Registration with DPB required by Nov 2026."
         },
         "2": {
           "name": "Data Minimization",
-          "section": "Section 4(2)",
+          "section": "Act Section 4(2)",
           "type": "organizational",
           "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Data retention automation"],
           "config_rules": [],
@@ -26,67 +27,75 @@
         },
         "3": {
           "name": "Privacy Notices",
-          "section": "Section 5",
+          "section": "Act Section 5, Rule 3",
           "type": "organizational",
-          "aws_controls": [],
+          "aws_controls": ["API Gateway for consent withdrawal endpoints", "Lambda for automated rights exercise"],
           "config_rules": [],
-          "guardrails": []
+          "guardrails": [],
+          "rules_2025_notes": "Rule 3 mandates standalone notices with: itemized list of personal data collected, specific processing purposes, direct links for consent withdrawal, rights exercise, and complaint filing. Effective May 2027."
         },
         "4": {
           "name": "Data Principal Rights",
-          "section": "Sections 11-14",
+          "section": "Act Sections 11-14, Rules 5, 9",
           "type": "organizational",
-          "aws_controls": ["API Gateway for data subject requests", "Lambda for automated responses"],
+          "aws_controls": ["API Gateway for data subject requests", "Lambda for automated responses", "S3 for data portability exports", "Step Functions for rights request workflows"],
           "config_rules": [],
-          "guardrails": []
+          "guardrails": [],
+          "rules_2025_notes": "Rules require specific mechanisms for Data Principals to withdraw consent, exercise rights, and file complaints. Must provide website link or app process."
         },
         "5": {
           "name": "Breach Notification",
-          "section": "Section 8(5)",
+          "section": "Act Section 8(5), Rule 7",
           "type": "technical",
-          "aws_controls": ["GuardDuty", "Security Hub", "CloudTrail", "EventBridge for automated alerting", "SNS for notifications"],
-          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled"],
-          "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"]
+          "aws_controls": ["GuardDuty", "Security Hub", "CloudTrail", "EventBridge for automated alerting", "SNS for dual notification (DPB + Data Principals)", "Lambda for automated breach report generation"],
+          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled", "cloudwatch-log-group-encrypted"],
+          "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"],
+          "rules_2025_notes": "Rule 7 is stricter than the Act alone: NO threshold for breach reporting (any breach must be reported). Dual notification required: (1) immediate notice to affected Data Principals with breach details, consequences, mitigation steps; (2) immediate intimation to DPB + detailed report within 72 hours. Penalties up to INR 200 crores."
         },
         "6": {
           "name": "Reasonable Security Safeguards",
-          "section": "Section 8(4)",
+          "section": "Act Section 8(4), Rule 6",
           "type": "technical",
-          "aws_controls": ["KMS encryption", "S3 Block Public Access", "IAM least privilege", "VPC network isolation", "WAF", "Shield"],
-          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled"],
-          "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED", "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC"]
+          "aws_controls": ["KMS encryption", "S3 Block Public Access", "IAM least privilege", "VPC network isolation", "WAF", "Shield", "CloudWatch Logs with 1-year retention for access logs", "AWS Backup for continuity measures", "Macie for data masking and classification"],
+          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled", "cloudwatch-log-group-encrypted", "cw-loggroup-retention-period-check"],
+          "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED", "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC"],
+          "rules_2025_notes": "Rule 6 makes safeguards PRESCRIPTIVE (not just 'reasonable'): mandatory encryption, masking, obfuscation, tokenization. Mandatory access controls, activity logs, continuity measures (backups). ONE-YEAR mandatory retention of unauthorized access logs. Data Processor agreements must include mandatory security clauses. These are minimum standards."
         },
         "7": {
           "name": "Data Retention Limits",
-          "section": "Section 8(6)",
+          "section": "Act Section 8(6), Rule 8",
           "type": "technical",
-          "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Backup retention policies"],
-          "config_rules": ["s3-lifecycle-policy-check", "dynamodb-table-encrypted-kms"],
-          "guardrails": ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"]
+          "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Backup retention policies", "S3 Object Lock for mandatory log retention", "EventBridge + Lambda for 48-hour erasure warnings", "CloudWatch Logs 1-year minimum retention"],
+          "config_rules": ["s3-lifecycle-policy-check", "dynamodb-table-encrypted-kms", "cw-loggroup-retention-period-check"],
+          "guardrails": ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
+          "rules_2025_notes": "Rule 8 adds prescriptive requirements: erasure when user disengages (per Third Schedule categories), 48-hour warning before erasure, 1-year minimum log retention. Large-scale Data Fiduciaries (e-commerce 20M+, gaming 5M+, social media 20M+ Indian users) must erase after 3 years except for account access or legal compliance."
         },
         "8": {
           "name": "Cross-Border Data Transfer",
-          "section": "Sections 16-17",
+          "section": "Act Sections 16-17, Rules 14-15",
           "type": "organizational",
           "aws_controls": ["Region deny SCPs", "S3 replication controls"],
           "config_rules": [],
-          "guardrails": ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"]
+          "guardrails": ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"],
+          "rules_2025_notes": "Rules adopt blacklist approach (more lenient than GDPR): data may generally be transferred outside India. Restrictions only for government-designated blacklisted countries/entities. No blacklist published yet as of April 2026. SDFs may face additional data localization requirements per Rule 13."
         },
         "9": {
           "name": "Children's Data Protection",
-          "section": "Section 9",
+          "section": "Act Section 9, Rules 10-12",
           "type": "organizational",
-          "aws_controls": ["Age verification via Cognito", "Parental consent workflows"],
+          "aws_controls": ["Age verification via Cognito", "Parental consent workflows", "Virtual identity token verification", "Step Functions for parental consent orchestration"],
           "config_rules": [],
-          "guardrails": []
+          "guardrails": [],
+          "rules_2025_notes": "Rules 10-12 require verifiable parental consent using: identity data, voluntarily provided details, or authorized virtual identity tokens. Schools, healthcare, and childcare services get targeted exemptions. Age threshold is 18 (not 16 as in GDPR)."
         },
         "10": {
           "name": "Significant Data Fiduciary Obligations",
-          "section": "Section 10",
+          "section": "Act Section 10, Rule 13",
           "type": "organizational",
-          "aws_controls": ["Audit Manager for DPIA", "AWS Config for continuous compliance"],
+          "aws_controls": ["Audit Manager for annual DPIA", "AWS Config for continuous compliance", "SageMaker model monitoring for algorithmic assessments", "Inspector for independent security audits"],
           "config_rules": [],
-          "guardrails": []
+          "guardrails": [],
+          "rules_2025_notes": "Rule 13 makes obligations prescriptive: mandatory annual DPIAs and independent audits. Algorithmic assessments required — must ensure technical measures (including algorithmic software) do not pose risk to Data Principal rights. Data localization for government-notified categories. Must submit reports to DPB. No SDFs designated yet as of April 2026."
         }
       }
     },
@@ -209,6 +218,46 @@
           "guardrails": []
         }
       }
+    },
+    "certin": {
+      "name": "CERT-In Directions on Information Security Practices 2022",
+      "version": "Directions dated April 28, 2022",
+      "source_url": "https://www.cert-in.org.in",
+      "last_verified": "2026-05-02",
+      "domains": {
+        "1": {
+          "name": "Incident Reporting Readiness",
+          "section": "Direction 1-3",
+          "type": "technical",
+          "aws_controls": ["GuardDuty", "EventBridge", "SNS", "Lambda", "Security Hub"],
+          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled"],
+          "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED"]
+        },
+        "2": {
+          "name": "Log Retention (180 days)",
+          "section": "Direction 4",
+          "type": "technical",
+          "aws_controls": ["CloudWatch Logs", "S3 access logging", "CloudTrail"],
+          "config_rules": ["cw-loggroup-retention-period-check", "cloudtrail-enabled"],
+          "guardrails": ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"]
+        },
+        "3": {
+          "name": "NTP Synchronization",
+          "section": "Direction 5",
+          "type": "technical",
+          "aws_controls": ["Amazon Time Sync Service (automatic on EC2/ECS/EKS)"],
+          "config_rules": [],
+          "guardrails": []
+        },
+        "4": {
+          "name": "Reportable Incident Awareness",
+          "section": "Direction 6",
+          "type": "technical",
+          "aws_controls": ["Security Hub", "GuardDuty", "Inspector", "Detective"],
+          "config_rules": ["securityhub-enabled", "guardduty-enabled-centralized"],
+          "guardrails": []
+        }
+      }
     }
   },
   "regulatory_sources": {
@@ -226,5 +275,15 @@
     "certin": [
       {"url": "https://www.cert-in.org.in", "type": "advisories"}
     ]
-  }
+  },
+  "update_history": [
+    {
+      "date": "2026-04-30",
+      "framework": "dpdp",
+      "source_url": "https://egazette.gov.in/WriteReadData/2025/263757.pdf",
+      "circular_date": "2025-11-14",
+      "changes_applied": 18,
+      "summary": "Updated DPDP mappings to incorporate Rules 2025 (notified Nov 14, 2025). Key changes: Rule 3 standalone privacy notices, Rule 4 Consent Manager framework with 7-year retention, Rule 6 prescriptive security safeguards with mandatory encryption/masking/1-year log retention, Rule 7 stricter breach notification (no threshold, dual notification, immediate + 72hr), Rule 8 prescriptive data retention with erasure timelines and 48hr warnings, Rules 10-12 verifiable parental consent with virtual identity tokens, Rule 13 mandatory annual DPIA/audits/algorithmic assessments for SDFs."
+    }
+  ]
 }
