@@ -16,7 +16,16 @@ Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 ## Quick start
 
+### 1. Install
+
 ```bash
+git clone https://github.com/aws-samples/sample-aws-india-compliance-mcp.git
+cd sample-aws-india-compliance-mcp
+
+# Create a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
 # Install
 pip install .
 
@@ -24,16 +33,49 @@ pip install .
 pip install . -c constraints.txt
 ```
 
-Add to `.kiro/settings/mcp.json`:
+### 2. Configure AWS credentials
+
+The server needs read-only AWS access. Use **AWS IAM Identity Center (SSO)** — this is the recommended approach for teams.
+
+**First-time SSO setup:**
+```bash
+aws configure sso
+```
+Follow the prompts:
+- SSO session name: `my-sso` (any name)
+- SSO start URL: your org's SSO URL (e.g., `https://d-xxxxxxxxxx.awsapps.com/start`)
+- SSO region: `us-east-1` (or wherever your Identity Center is)
+- It opens a browser — sign in and authorize
+- Select the account and role (e.g., `ReadOnlyAccess`)
+- CLI profile name: `my-sso-profile` (remember this)
+
+**Login before each session:**
+```bash
+aws sso login --profile my-sso-profile
+```
+This opens a browser for authentication. Once approved, your CLI has temporary credentials for ~8 hours.
+
+**Verify it works:**
+```bash
+aws sts get-caller-identity --profile my-sso-profile
+```
+
+**Alternative: static credentials (not recommended for teams)**
+If you have long-lived access keys in `~/.aws/credentials`, those work too — but SSO is preferred for security.
+
+### 3. Add to your MCP client
+
+Add to `.kiro/settings/mcp.json` (or `claude_desktop_config.json` for Claude Desktop):
 
 ```json
 {
   "mcpServers": {
     "aws-india-compliance": {
-      "command": "python3",
+      "command": "/path/to/your/.venv/bin/python3",
       "args": ["-m", "aws_india_compliance.server"],
       "env": {
-        "AWS_PROFILE": "your-sso-profile",
+        "PYTHONPATH": "/path/to/sample-aws-india-compliance-mcp/src",
+        "AWS_PROFILE": "my-sso-profile",
         "LOG_LEVEL": "INFO"
       }
     }
@@ -41,7 +83,17 @@ Add to `.kiro/settings/mcp.json`:
 }
 ```
 
-For Claude Desktop, add the same block to `claude_desktop_config.json`.
+Replace `/path/to/your/.venv/bin/python3` with the actual path to your venv Python, and `my-sso-profile` with your SSO profile name.
+
+**Tip:** Run `which python3` inside your activated venv to get the exact path.
+
+### 4. Verify
+
+Ask your MCP client:
+> "List the DPDP control domains"
+
+If it returns 10 domains, you're set. To scan your AWS account:
+> "Scan my AWS account in ap-south-1 for DPDP and RBI compliance"
 
 ## Prerequisites
 
