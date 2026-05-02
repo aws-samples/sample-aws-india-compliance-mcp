@@ -30,10 +30,17 @@ htmlcov/
 
 # Scan reports (contain account IDs and resource names)
 AWS_Compliance_Report*.md
+AWS_Org_Compliance_Report.md
+Control_Tower_Compliance_Report.md
+reports/
+ct_scan_result.json
 
 # Internal development notes
 research.md
 Success.md
+backendprocess.md
+FSI_Review_Notes.md
+CHANGELOG.md
 
 # OS files
 .DS_Store
