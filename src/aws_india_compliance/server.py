@@ -447,14 +447,36 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
         full_report_path = None
         gap_cap = 100  # max gaps inline
 
+        # Build gap summary by framework and risk (needed for both file and response)
+        gap_summary: dict[str, dict[str, int]] = {}
+        for g in all_gaps:
+            fw = g.get("framework", "unknown")
+            risk = g.get("risk", "unknown")
+            gap_summary.setdefault(fw, {}).setdefault(risk, 0)
+            gap_summary[fw][risk] += 1
+
+        # Confidence distribution (needed for both file and response)
+        conf_dist: dict[str, int] = {}
+        for g in all_gaps:
+            c = g.get("confidence", "unknown")
+            conf_dist[c] = conf_dist.get(c, 0) + 1
+
         if len(all_gaps) > gap_cap:
             import os, tempfile
-            # Write full result to a report file
+            # Write full result to a report file (includes all new fields)
             full_result = {
                 "region": region, "aggregator": aggregator_name or "single-account",
                 "executive_summary": summary,
+                "scan_metadata": {
+                    "scan_start": scan_start.isoformat(),
+                    "scan_end": scan_end.isoformat(),
+                    "region": region,
+                    "tool_version": __version__,
+                },
                 "discovered_resources": [{"name": c["name"], "type": c["type"], "category": c["category"],
                                            "region": c.get("region", ""), "account": c.get("account_id", "")} for c in components],
+                "gap_summary_by_framework": gap_summary,
+                "confidence_distribution": conf_dist,
                 **result, "remediation_timeline": timeline,
                 **({"staleness_warning": sw} if (sw := _get_staleness_warning()) else {}),
             }
@@ -473,20 +495,6 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             result_gaps = priority_gaps
         else:
             result_gaps = all_gaps
-
-        # Build gap summary by framework and risk
-        gap_summary: dict[str, dict[str, int]] = {}
-        for g in all_gaps:
-            fw = g.get("framework", "unknown")
-            risk = g.get("risk", "unknown")
-            gap_summary.setdefault(fw, {}).setdefault(risk, 0)
-            gap_summary[fw][risk] += 1
-
-        # Confidence distribution
-        conf_dist: dict[str, int] = {}
-        for g in all_gaps:
-            c = g.get("confidence", "unknown")
-            conf_dist[c] = conf_dist.get(c, 0) + 1
 
         response: dict[str, Any] = {
             "region": region, "aggregator": aggregator_name or "single-account",
@@ -981,7 +989,8 @@ def apply_mapping_update(framework: str, proposed_changes_json: str, source_url:
 
 
 @mcp.tool()
-def format_report(report_path: str = "", report_json: str = "", report_type: str = "auto") -> str:
+def format_report(report_path: str = "", report_json: str = "", report_type: str = "auto",
+                  output_format: str = "markdown") -> str:
     """Format a scan report JSON into a human-readable Markdown report.
 
     Accepts either a file path to a previously saved scan report JSON, or
@@ -991,10 +1000,12 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
         report_path: Path to a scan report JSON file (from scan_aws_account output).
         report_json: Inline JSON string of a scan report (alternative to report_path).
         report_type: "account", "control_tower", or "auto" (detect automatically).
+        output_format: "markdown" or "docx". Docx generates a production-grade Word report with color coding.
 
     Returns:
         Formatted Markdown compliance report with executive summary, posture scores,
         per-account breakdown, gap tables, and remediation timeline.
+        For docx format, returns the file path of the generated .docx file.
     """
     from .report_formatter import format_account_scan, format_control_tower_scan
 
@@ -1051,7 +1062,34 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
         else:
             report_type = "account"
 
-    # Format
+    # Generate DOCX if requested
+    if output_format.lower() == "docx":
+        from .docx_formatter import generate_docx
+        report_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "reports",
+        )
+        os.makedirs(report_dir, exist_ok=True)
+
+        # For docx, we pass CT data as second arg if available
+        ct_data = None
+        if report_type == "control_tower":
+            ct_data = data
+            data_for_docx = {}  # no org data
+        else:
+            data_for_docx = data
+
+        doc = generate_docx(data_for_docx if data_for_docx else data, ct_data=ct_data)
+        docx_path = os.path.join(report_dir, f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.docx")
+        doc.save(docx_path)
+        return json.dumps({
+            "status": "success",
+            "format": "docx",
+            "file_path": docx_path,
+            "message": f"Production-grade DOCX report saved to {docx_path}",
+        })
+
+    # Format as Markdown
     if report_type == "control_tower":
         markdown = format_control_tower_scan(data)
     else:
