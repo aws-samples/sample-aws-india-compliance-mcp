@@ -116,7 +116,7 @@ If it returns 10 domains, you're set. To scan your AWS account:
 | `check_regulatory_updates` | Staleness check + content hash monitoring + new circular detection. Flags when mappings may be outdated. |
 | `propose_mapping_update` | Feed new regulatory text to the LLM client for analysis. Returns current mappings + structured prompt for proposing changes. |
 | `apply_mapping_update` | Validate and apply LLM-proposed mapping changes to control_mappings.json. Supports review-then-apply workflow. |
-| `format_report` | Convert scan report JSON into a human-readable Markdown report with executive summary, posture tables, per-account breakdown, gap details, and remediation timeline. |
+| `format_report` | Convert scan report JSON into Markdown or production-grade DOCX. Pass `output_format="docx"` for a styled Word report with color-coded risk levels, posture scores, cover page, and Control Tower guardrails. |
 
 ## Key features
 
@@ -162,7 +162,22 @@ Per-domain resource compliance percentages (e.g., "dpdp:6 — 482 checked, 320 p
 - `DataClassification` tag value included in gap description when present
 
 ### Report formatting
-The `format_report` tool converts scan JSON into structured Markdown with:
+The `format_report` tool supports two output formats:
+
+**Markdown** (default): Structured text report for chat display and quick review.
+
+**DOCX** (`output_format="docx"`): Production-grade Word document suitable for sharing with customers and auditors. Features:
+- Professional cover page with scan metadata and confidentiality notice
+- Color-coded posture scores (green/orange/red based on thresholds)
+- Dark blue styled table headers with alternating row shading
+- Risk-level cell coloring (red for critical, orange for high, yellow for medium)
+- Confidence-level cell coloring (green for high, orange for medium, red for low)
+- Landscape orientation with full-width tables (no truncation of resource names)
+- Control Tower section with guardrails, per-OU breakdown, and recommendations
+- Phased remediation timeline
+- Disclaimer page
+
+Both formats include:
 - Executive summary with posture scores
 - Confidence distribution table
 - Gap summary by framework and risk level

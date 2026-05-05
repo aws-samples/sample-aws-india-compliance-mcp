@@ -288,11 +288,11 @@ def _format_gap_table(lines: list[str], gaps: list[dict]) -> None:
     lines.append("| Component | Framework | Domain | Gap | Confidence | Reference |")
     lines.append("|---|---|---|---|---|---|")
     for g in gaps:
-        comp = g.get("component", "")[:40]
+        comp = g.get("component", "")
         fw = g.get("framework", "").upper()
-        domain = g.get("domain_name", "")[:30]
-        gap_desc = g.get("gap", "")[:60]
+        domain = g.get("domain_name", "")
+        gap_desc = g.get("gap", "")
         conf = g.get("confidence", "")
-        ref = g.get("reference", "")[:30]
+        ref = g.get("reference", "")
         lines.append(f"| {comp} | {fw} | {domain} | {gap_desc} | {conf} | {ref} |")
     lines.append("")
