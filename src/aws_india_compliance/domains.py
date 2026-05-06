@@ -52,6 +52,10 @@ CERTIN_DOMAINS: dict[int, str] = {
     2: "Log Retention (180 days)",
     3: "NTP Synchronization",
     4: "Reportable Incident Awareness",
+    5: "DDoS and Bot Protection",
+    6: "Network Security and DNS Protection",
+    7: "Endpoint and Malware Protection",
+    8: "Data Leakage Prevention",
 }
 
 ALLOWED_SOURCE_DOMAINS: set[str] = {

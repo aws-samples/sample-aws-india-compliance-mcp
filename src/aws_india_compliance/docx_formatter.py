@@ -316,6 +316,18 @@ def generate_docx(data: dict[str, Any], ct_data: dict[str, Any] | None = None) -
     gap_summary = data.get("gap_summary_by_framework", {})
     if gap_summary:
         _add_section_header(doc, "Gap Summary by Framework and Risk")
+
+        # Penalty exposure summary
+        penalty_dist: dict[str, int] = {}
+        for g in data.get("gaps", []):
+            p = g.get("penalty_exposure", "")
+            if p:
+                penalty_dist[p] = penalty_dist.get(p, 0) + 1
+        if penalty_dist:
+            doc.add_heading("Potential Penalty Exposure", level=2)
+            penalty_rows = [[k, str(v)] for k, v in sorted(penalty_dist.items(), key=lambda x: -x[1])]
+            _add_styled_table(doc, ["Penalty Category", "Gap Count"], penalty_rows)
+
         rows = []
         for fw, risks in sorted(gap_summary.items()):
             c = risks.get("critical", 0)
@@ -366,9 +378,10 @@ def generate_docx(data: dict[str, Any], ct_data: dict[str, Any] | None = None) -
                 g.get("domain_name", ""),
                 g.get("gap", ""),
                 g.get("confidence", ""),
-                g.get("remediation", ""),
+                g.get("penalty_exposure", ""),
+                g.get("responsibility_type", ""),
             ])
-        _add_styled_table(doc, ["Component", "Framework", "Domain", "Finding", "Confidence", "Remediation"],
+        _add_styled_table(doc, ["Component", "Framework", "Domain", "Finding", "Confidence", "Penalty Exposure", "Responsibility"],
                           rows, confidence_col=4, small=True)
 
     # High Gaps
@@ -384,9 +397,10 @@ def generate_docx(data: dict[str, Any], ct_data: dict[str, Any] | None = None) -
                 g.get("domain_name", ""),
                 g.get("gap", ""),
                 g.get("confidence", ""),
-                g.get("reference", ""),
+                g.get("penalty_exposure", ""),
+                g.get("responsibility_type", ""),
             ])
-        _add_styled_table(doc, ["Component", "Framework", "Domain", "Finding", "Confidence", "Reference"],
+        _add_styled_table(doc, ["Component", "Framework", "Domain", "Finding", "Confidence", "Penalty Exposure", "Responsibility"],
                           rows, confidence_col=4, small=True)
         if len(high_gaps) > 80:
             doc.add_paragraph(f"... and {len(high_gaps) - 80} additional high-risk gaps. See full JSON report for complete list.")
