@@ -275,6 +275,11 @@ def assess(
     has_detective = any("detective" in c["type"].lower() for c in filtered_components)
     has_inspector = any("inspector" in c["type"].lower() for c in filtered_components)
     has_backup = any("backup" in c["type"].lower() for c in filtered_components)
+    has_shield = any("shield" in c["type"].lower() for c in filtered_components)
+    has_network_firewall = any("networkfirewall" in c["type"].lower() or "network_firewall" in c["type"].lower() for c in filtered_components)
+    has_macie = any("macie" in c["type"].lower() for c in filtered_components)
+    has_cloudfront = any("cloudfront" in c["type"].lower() for c in filtered_components)
+    has_access_analyzer = any("accessanalyzer" in c["type"].lower() or "access_analyzer" in c["type"].lower() for c in filtered_components)
 
     # Enhanced _gap() closure with confidence, evidence, checked_at (Task 4.1)
     domain_map = {"dpdp": DPDP_DOMAINS, "rbi": RBI_DOMAINS, "sebi": SEBI_DOMAINS, "certin": CERTIN_DOMAINS}
@@ -295,6 +300,31 @@ def assess(
             else:
                 confidence_rationale = "Interpretive mapping from regulatory requirement"
 
+        # Penalty exposure
+        if fw == "dpdp":
+            if dom == 9:
+                penalty = "Up to INR 200 Crore"
+            elif dom == 10:
+                penalty = "Up to INR 150 Crore"
+            else:
+                penalty = "Up to INR 50 Crore"
+        elif fw == "rbi":
+            penalty = "As per RBI enforcement framework"
+        elif fw == "sebi":
+            penalty = "As per SEBI adjudication guidelines"
+        else:
+            penalty = "As per IT Act Section 70B penalties"
+
+        # Responsibility type (from RBI shared responsibility model)
+        if fw in ("rbi", "sebi") and confidence == "high":
+            responsibility = "shared"  # Technical checks are shared responsibility
+        elif fw in ("rbi", "sebi") and confidence == "low":
+            responsibility = "customer"  # Organizational controls are customer responsibility
+        elif fw == "dpdp" and dom in (1, 2, 3, 4, 9, 10):
+            responsibility = "customer"  # DPDP organizational domains
+        else:
+            responsibility = "shared"
+
         gaps.append({
             "component": comp_name,
             "framework": fw,
@@ -308,6 +338,8 @@ def assess(
             "confidence_rationale": confidence_rationale,
             "evidence": evidence,
             "checked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "penalty_exposure": penalty,
+            "responsibility_type": responsibility,
         })
 
     for comp in filtered_components:
@@ -433,6 +465,26 @@ def assess(
              confidence="high",
              evidence={"inspector_enabled": False, "expected": True})
 
+    # RBI 2016 Cyber Security Framework checks
+    if is_rbi:
+        # Section 8: User Access Control - Access Analyzer for unused permissions
+        if not has_access_analyzer:
+            _gap("architecture", "rbi", 4, "medium",
+                 "No IAM Access Analyzer for identifying unused permissions and external access (RBI 2016 Section 8.5)",
+                 "Enable IAM Access Analyzer to identify unused permissions and external resource sharing",
+                 "RBI Cyber Security Framework 2016 Section 8.5",
+                 confidence="high",
+                 evidence={"access_analyzer_enabled": False, "expected": True})
+
+        # Section 1.2: Data Classification - Macie
+        if not has_macie:
+            _gap("architecture", "rbi", 4, "medium",
+                 "No Amazon Macie for automated data classification (RBI 2016 Section 1.2)",
+                 "Enable Amazon Macie for automated sensitive data discovery and classification",
+                 "RBI Cyber Security Framework 2016 Section 1.2",
+                 confidence="medium",
+                 confidence_rationale="Macie is one approach to data classification; manual classification also satisfies the requirement")
+
     if is_sdf:
         _gap("organization", "dpdp", 10, "high", "SDF must appoint DPO and conduct DPIA",
              "Appoint DPO, conduct annual DPIA", "DPDP Act Section 10(2)",
@@ -478,10 +530,54 @@ def assess(
                  confidence="high",
                  evidence={"securityhub_enabled": False, "expected": True})
 
-        certin_score = len(certin_satisfied) / 4 * 100
+        # Domain 5: DDoS and Bot Protection
+        if has_shield or (has_waf and has_cloudfront):
+            certin_satisfied.add(5)
+        else:
+            _gap("architecture", "certin", 5, "medium",
+                 "No Shield Advanced or WAF+CloudFront for DDoS/Bot protection",
+                 "Enable AWS Shield Advanced or WAF with Bot Control on CloudFront",
+                 "CERT-In Directions 2022 - DDoS/Bot Attacks",
+                 confidence="high",
+                 evidence={"shield": has_shield, "waf": has_waf, "expected": "Shield Advanced or WAF+CloudFront"})
+
+        # Domain 6: Network Security and DNS Protection
+        if has_network_firewall:
+            certin_satisfied.add(6)
+        else:
+            _gap("architecture", "certin", 6, "medium",
+                 "No AWS Network Firewall for network-level threat detection",
+                 "Deploy AWS Network Firewall for network traffic inspection",
+                 "CERT-In Directions 2022 - Network Compromise",
+                 confidence="medium",
+                 confidence_rationale="Network Firewall is one of several valid approaches to network security")
+
+        # Domain 7: Endpoint and Malware Protection
+        if has_guardduty and has_inspector:
+            certin_satisfied.add(7)
+        else:
+            _gap("architecture", "certin", 7, "medium",
+                 "Incomplete endpoint/malware protection (need GuardDuty Malware Protection + Inspector)",
+                 "Enable GuardDuty Malware Protection and Amazon Inspector",
+                 "CERT-In Directions 2022 - Malware/Ransomware",
+                 confidence="high",
+                 evidence={"guardduty": has_guardduty, "inspector": has_inspector, "expected": "both enabled"})
+
+        # Domain 8: Data Leakage Prevention
+        if has_macie or (has_kms and not any(g.get("gap", "").startswith("S3") and "public" in g.get("gap", "").lower() for g in gaps)):
+            certin_satisfied.add(8)
+        else:
+            _gap("architecture", "certin", 8, "medium",
+                 "No Macie for data discovery/DLP and S3 public access gaps exist",
+                 "Enable Amazon Macie for sensitive data discovery and ensure S3 Block Public Access",
+                 "CERT-In Directions 2022 - Data Breach/Leaks",
+                 confidence="medium",
+                 evidence={"macie": has_macie, "kms": has_kms})
+
+        certin_score = len(certin_satisfied) / 8 * 100
         certin_posture_result = {
             "satisfied": len(certin_satisfied),
-            "total": 4,
+            "total": 8,
             "score": round(certin_score, 1),
         }
 

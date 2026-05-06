@@ -32,6 +32,8 @@ CONFIG_RESOURCE_TYPES: list[str] = [
     "AWS::EC2::VPC",
     "AWS::EC2::SecurityGroup",
     "AWS::SecretsManager::Secret",
+    "AWS::AccessAnalyzer::Analyzer",
+    "AWS::SSM::PatchCompliance",
 ]
 
 
@@ -208,6 +210,10 @@ def scan_via_config(region: str, aggregator_name: str = "") -> list[dict[str, An
     _fallback_waf(session, region, components)
     _fallback_backup(session, region, components)
     _fallback_inspector(session, region, components)
+    _fallback_shield(session, region, components)
+    _fallback_network_firewall(session, region, components)
+    _fallback_access_analyzer(session, region, components)
+    _fallback_macie(session, region, components)
 
     return components
 
@@ -538,3 +544,71 @@ def _fallback_inspector(session: Any, region: str, components: list[dict]) -> No
                 return
     except Exception:  # noqa: B110 — expected when service not enabled
         _logger.debug("Inspector not available in %s", region)
+
+
+def _fallback_shield(session: Any, region: str, components: list[dict]) -> None:
+    """Check for AWS Shield Advanced subscription."""
+    try:
+        shield = session.client("shield", region_name="us-east-1")  # Shield is global
+        subscription = shield.describe_subscription()
+        if subscription.get("Subscription"):
+            components.append({
+                "name": "ShieldAdvanced",
+                "type": "AWS::Shield::Subscription",
+                "category": "security",
+                "properties": {"active": True},
+                "region": "global", "account_id": "", "tags": {},
+            })
+    except Exception:
+        _logger.debug("Shield Advanced not available")
+
+
+def _fallback_network_firewall(session: Any, region: str, components: list[dict]) -> None:
+    """Check for AWS Network Firewall."""
+    try:
+        nfw = session.client("network-firewall", region_name=region)
+        firewalls = nfw.list_firewalls().get("Firewalls", [])
+        for fw in firewalls[:5]:
+            components.append({
+                "name": fw.get("FirewallName", "network-firewall"),
+                "type": "AWS::NetworkFirewall::Firewall",
+                "category": "security",
+                "properties": {},
+                "region": region, "account_id": "", "tags": {},
+            })
+    except Exception:
+        _logger.debug("Network Firewall not available in %s", region)
+
+
+def _fallback_access_analyzer(session: Any, region: str, components: list[dict]) -> None:
+    """Check for IAM Access Analyzer."""
+    try:
+        aa = session.client("accessanalyzer", region_name=region)
+        analyzers = aa.list_analyzers(type="ACCOUNT").get("analyzers", [])
+        for analyzer in analyzers[:3]:
+            components.append({
+                "name": analyzer.get("name", "access-analyzer"),
+                "type": "AWS::AccessAnalyzer::Analyzer",
+                "category": "security",
+                "properties": {"status": analyzer.get("status", ""), "type": analyzer.get("type", "")},
+                "region": region, "account_id": "", "tags": {},
+            })
+    except Exception:
+        _logger.debug("Access Analyzer not available in %s", region)
+
+
+def _fallback_macie(session: Any, region: str, components: list[dict]) -> None:
+    """Check for Amazon Macie enablement."""
+    try:
+        macie = session.client("macie2", region_name=region)
+        status = macie.get_macie_session()
+        if status.get("status") == "ENABLED":
+            components.append({
+                "name": "Macie",
+                "type": "AWS::Macie::Session",
+                "category": "security",
+                "properties": {"status": "ENABLED"},
+                "region": region, "account_id": "", "tags": {},
+            })
+    except Exception:
+        _logger.debug("Macie not available in %s", region)

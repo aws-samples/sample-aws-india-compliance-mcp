@@ -34,7 +34,7 @@ def test_manifest_loads():
     assert "dpdp" in m["frameworks"]
     assert "rbi" in m["frameworks"]
     assert "sebi" in m["frameworks"]
-    assert m["manifest_version"] == "1.1.0"
+    assert m["manifest_version"] == "1.2.0"
 
 def test_manifest_has_aws_controls():
     from aws_india_compliance.domains import load_manifest

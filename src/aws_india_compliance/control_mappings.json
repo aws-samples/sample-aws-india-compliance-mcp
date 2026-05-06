@@ -1,5 +1,5 @@
 {
-  "manifest_version": "1.1.0",
+  "manifest_version": "1.2.0",
   "last_updated": "2026-04-30",
   "frameworks": {
     "dpdp": {
@@ -45,7 +45,7 @@
         },
         "5": {
           "name": "Breach Notification",
-          "section": "Act Section 8(5), Rule 7",
+          "section": "DPDP Act Section 8(5), Rules 2025 Rule 7 (7.1.a-e: breach nature, risks, affected categories, mitigation measures, contact details)",
           "type": "technical",
           "aws_controls": ["GuardDuty", "Security Hub", "CloudTrail", "EventBridge for automated alerting", "SNS for dual notification (DPB + Data Principals)", "Lambda for automated breach report generation"],
           "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled", "cloudwatch-log-group-encrypted"],
@@ -54,7 +54,7 @@
         },
         "6": {
           "name": "Reasonable Security Safeguards",
-          "section": "Act Section 8(4), Rule 6",
+          "section": "DPDP Act Section 8(4), Rules 2025 Rule 6 (6.1.a-g: unauthorized access prevention, confidentiality, integrity, encryption, anonymization, access controls, monitoring)",
           "type": "technical",
           "aws_controls": ["KMS encryption", "S3 Block Public Access", "IAM least privilege", "VPC network isolation", "WAF", "Shield", "CloudWatch Logs with 1-year retention for access logs", "AWS Backup for continuity measures", "Macie for data masking and classification"],
           "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled", "cloudwatch-log-group-encrypted", "cw-loggroup-retention-period-check"],
@@ -173,6 +173,7 @@
           "name": "Cyber Governance",
           "section": "Section 3.1 / Principle 1",
           "type": "organizational",
+          "nist_csf": "ID.GV",
           "aws_controls": ["AWS Organizations", "Control Tower", "Service Catalog", "Audit Manager"],
           "config_rules": [],
           "guardrails": []
@@ -181,6 +182,7 @@
           "name": "Cyber Risk Identification",
           "section": "Section 3.2 / Principle 2-3",
           "type": "technical",
+          "nist_csf": "ID.RA, ID.AM",
           "aws_controls": ["AWS Config", "Inspector", "Systems Manager", "Security Hub"],
           "config_rules": ["ec2-instance-managed-by-systems-manager", "ec2-stopped-instance"],
           "guardrails": []
@@ -189,6 +191,7 @@
           "name": "Cyber Protection",
           "section": "Section 3.3 / Security IN the Cloud",
           "type": "technical",
+          "nist_csf": "PR.AC, PR.DS, PR.IP",
           "aws_controls": ["KMS (BYOK)", "IAM least privilege", "MFA", "Network segmentation", "WAF", "Shield", "VPC", "S3 encryption", "RDS encryption"],
           "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "iam-policy-no-statements-with-admin-access", "mfa-enabled-for-iam-console-access", "vpc-flow-logs-enabled", "restricted-ssh"],
           "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP"]
@@ -197,6 +200,7 @@
           "name": "Cyber Detection",
           "section": "Section 3.4 / SOC Integration",
           "type": "technical",
+          "nist_csf": "DE.AE, DE.CM",
           "aws_controls": ["GuardDuty", "Security Hub", "CloudWatch", "Detective", "SIEM integration"],
           "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloudwatch-alarm-action-check"],
           "guardrails": []
@@ -205,6 +209,7 @@
           "name": "Cyber Response",
           "section": "Section 3.5 / Incident Management",
           "type": "technical",
+          "nist_csf": "RS.RP, RS.CO",
           "aws_controls": ["EventBridge", "Lambda", "SNS", "Systems Manager Incident Manager"],
           "config_rules": [],
           "guardrails": []
@@ -213,6 +218,7 @@
           "name": "Cyber Recovery",
           "section": "Section 3.6 / BCP-DR",
           "type": "technical",
+          "nist_csf": "RC.RP, RC.IM",
           "aws_controls": ["AWS Backup", "S3 versioning", "RDS Multi-AZ", "Cross-region replication", "DynamoDB PITR"],
           "config_rules": ["db-instance-backup-enabled", "dynamodb-pitr-enabled", "s3-bucket-versioning-enabled"],
           "guardrails": []
@@ -256,6 +262,38 @@
           "aws_controls": ["Security Hub", "GuardDuty", "Inspector", "Detective"],
           "config_rules": ["securityhub-enabled", "guardduty-enabled-centralized"],
           "guardrails": []
+        },
+        "5": {
+          "name": "DDoS and Bot Protection",
+          "section": "CERT-In Directions 2022 - DDoS/Bot Attacks",
+          "type": "technical",
+          "aws_controls": ["AWS Shield Advanced", "AWS WAF Bot Control", "CloudFront"],
+          "config_rules": ["shield-advanced-enabled-autorenew"],
+          "guardrails": []
+        },
+        "6": {
+          "name": "Network Security and DNS Protection",
+          "section": "CERT-In Directions 2022 - Network Compromise",
+          "type": "technical",
+          "aws_controls": ["AWS Network Firewall", "Route53 DNSSEC", "VPC Flow Logs"],
+          "config_rules": ["vpc-flow-logs-enabled", "route53-dnssec-enabled"],
+          "guardrails": []
+        },
+        "7": {
+          "name": "Endpoint and Malware Protection",
+          "section": "CERT-In Directions 2022 - Malware/Ransomware",
+          "type": "technical",
+          "aws_controls": ["GuardDuty Malware Protection", "Amazon Inspector", "SSM Patch Manager"],
+          "config_rules": ["guardduty-malware-protection-enabled"],
+          "guardrails": []
+        },
+        "8": {
+          "name": "Data Leakage Prevention",
+          "section": "CERT-In Directions 2022 - Data Breach/Leaks",
+          "type": "technical",
+          "aws_controls": ["Macie", "S3 Block Public Access", "KMS Encryption", "CloudTrail Data Events"],
+          "config_rules": ["s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited"],
+          "guardrails": ["AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED"]
         }
       }
     }
