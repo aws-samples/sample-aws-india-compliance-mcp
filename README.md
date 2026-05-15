@@ -328,6 +328,35 @@ This server performs read-only operations. It does not modify AWS resources.
 
 For org-wide scans, add `config:SelectAggregateResourceConfig` on the aggregator ARN. Consider adding an explicit Deny statement for destructive actions (DeleteTrail, StopLogging, DeleteDetector, etc.).
 
+## Conformance packs
+
+The project includes a conformance pack generator that produces deployable AWS Config conformance pack YAML templates from `control_mappings.json`. Each pack maps AWS-managed Config rules to regulatory control domains.
+
+A pre-built DPDP Act conformance pack is available at `conformance-packs/DPDP-Act-Conformance-Pack.yaml`. Deploy it with:
+
+```bash
+aws configservice put-conformance-pack \
+  --conformance-pack-name DPDP-Act-2023-Conformance-Pack \
+  --template-body file://conformance-packs/DPDP-Act-Conformance-Pack.yaml
+```
+
+To generate packs programmatically for any framework:
+
+```python
+from aws_india_compliance.conformance_pack import generate_conformance_pack
+
+result = generate_conformance_pack(framework="dpdp")  # or "rbi", "sebi", "certin"
+print(result["yaml_content"])
+```
+
+Options:
+- `framework`: `"dpdp"`, `"rbi"`, `"sebi"`, or `"certin"`
+- `include_domains`: List of domain numbers to include (default: all)
+- `exclude_domains`: List of domain numbers to exclude
+- `pack_name_prefix`: Custom prefix for the conformance pack name
+
+Framework-specific parameter overrides are applied automatically (e.g., CERT-In uses 180-day log retention, DPDP uses 365-day).
+
 ## Project structure
 
 ```
@@ -340,7 +369,10 @@ src/aws_india_compliance/
   knowledge.py           # Live regulatory text search + content hash monitoring
   domains.py             # Domain definitions + manifest loader + staleness check
   report_formatter.py    # Markdown report generator (account scan + Control Tower)
+  docx_formatter.py      # DOCX report generator with color coding
+  conformance_pack.py    # AWS Config conformance pack YAML generator
   control_mappings.json  # Versioned control-to-AWS mapping manifest (DPDP, RBI, SEBI, CERT-In)
+conformance-packs/       # Pre-built conformance pack templates
 tests/
   test_assessment.py     # Assessment engine tests
   test_aws_scanner.py    # Scanner tests (mocked boto3)

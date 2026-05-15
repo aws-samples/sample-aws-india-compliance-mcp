@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from . import __version__
 from .assessment import assess
 from .aws_scanner import scan_via_config
+from .conformance_pack import generate_conformance_pack
 from .control_tower import assess_control_tower, scan_control_tower
 from .domains import DPDP_DOMAINS, RBI_DOMAINS, check_staleness
 from .knowledge import search_live, monitor_source_changes, update_content_hashes
@@ -76,7 +77,13 @@ try:
 except (ValueError, TypeError):
     _MCP_PORT = 8000
 
-mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
+# Only enable HTTP settings when transport is explicitly set to http/streamable-http.
+# For stdio (default, used by Claude Desktop and Kiro), these params are not needed.
+_transport = os.environ.get("MCP_TRANSPORT", "stdio")
+if _transport in ("streamable-http", "sse"):
+    mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
+else:
+    mcp = FastMCP("aws-india-compliance")
 
 
 def _log_tool_manifest() -> None:
@@ -331,6 +338,66 @@ def list_control_domains(framework: str = "dpdp") -> str:
     else:
         domains = DPDP_DOMAINS
     return json.dumps({"framework": framework, "domains": {str(k): v for k, v in domains.items()}}, indent=2)
+
+
+@mcp.tool()
+def generate_conformance_pack_tool(
+    framework: str = "dpdp",
+    include_domains: str = "",
+    exclude_domains: str = "",
+    pack_name_prefix: str = "",
+) -> str:
+    """Generate an AWS Config conformance pack YAML for a compliance framework.
+
+    Creates a deployable AWS Config conformance pack template containing
+    validated managed rules mapped to the specified regulatory framework's
+    control domains. All rule identifiers are validated against AWS documentation.
+
+    Supported frameworks: dpdp, rbi, sebi, certin.
+
+    Args:
+        framework: One of "dpdp", "rbi", "sebi", "certin". Default "dpdp".
+        include_domains: Comma-separated domain numbers to include (empty = all).
+        exclude_domains: Comma-separated domain numbers to exclude (empty = none).
+        pack_name_prefix: Optional prefix for the conformance pack name.
+
+    Returns:
+        JSON with yaml_content (the full template), pack_name, rule_count,
+        domains_covered, and deployment instructions.
+    """
+    # Parse domain filters
+    parsed_include: list[int] | None = None
+    if include_domains.strip():
+        try:
+            parsed_include = [int(d.strip()) for d in include_domains.split(",") if d.strip()]
+        except ValueError:
+            return json.dumps({"error": "include_domains must be comma-separated integers"})
+
+    parsed_exclude: list[int] | None = None
+    if exclude_domains.strip():
+        try:
+            parsed_exclude = [int(d.strip()) for d in exclude_domains.split(",") if d.strip()]
+        except ValueError:
+            return json.dumps({"error": "exclude_domains must be comma-separated integers"})
+
+    result = generate_conformance_pack(
+        framework=framework,
+        include_domains=parsed_include,
+        exclude_domains=parsed_exclude,
+        pack_name_prefix=pack_name_prefix,
+    )
+
+    if "error" in result:
+        return json.dumps(result)
+
+    # Add deployment instructions
+    result["deployment_command"] = (
+        f"aws configservice put-conformance-pack "
+        f"--conformance-pack-name {result['pack_name']} "
+        f"--template-body file://<filename>.yaml"
+    )
+
+    return json.dumps(result, indent=2)
 
 
 @mcp.tool()

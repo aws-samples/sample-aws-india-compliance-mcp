@@ -48,7 +48,7 @@
           "section": "DPDP Act Section 8(5), Rules 2025 Rule 7 (7.1.a-e: breach nature, risks, affected categories, mitigation measures, contact details)",
           "type": "technical",
           "aws_controls": ["GuardDuty", "Security Hub", "CloudTrail", "EventBridge for automated alerting", "SNS for dual notification (DPB + Data Principals)", "Lambda for automated breach report generation"],
-          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled", "cloudwatch-log-group-encrypted"],
+          "config_rules": ["guardduty-enabled-centralized", "securityhub-enabled", "cloud-trail-cloud-watch-logs-enabled", "cloudtrail-enabled", "cloud-trail-log-file-validation-enabled", "cloudwatch-log-group-encrypted"],
           "guardrails": ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"],
           "rules_2025_notes": "Rule 7 is stricter than the Act alone: NO threshold for breach reporting (any breach must be reported). Dual notification required: (1) immediate notice to affected Data Principals with breach details, consequences, mitigation steps; (2) immediate intimation to DPB + detailed report within 72 hours. Penalties up to INR 200 crores."
         },
@@ -57,7 +57,7 @@
           "section": "DPDP Act Section 8(4), Rules 2025 Rule 6 (6.1.a-g: unauthorized access prevention, confidentiality, integrity, encryption, anonymization, access controls, monitoring)",
           "type": "technical",
           "aws_controls": ["KMS encryption", "S3 Block Public Access", "IAM least privilege", "VPC network isolation", "WAF", "Shield", "CloudWatch Logs with 1-year retention for access logs", "AWS Backup for continuity measures", "Macie for data masking and classification"],
-          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled", "cloudwatch-log-group-encrypted", "cw-loggroup-retention-period-check"],
+          "config_rules": ["encrypted-volumes", "rds-storage-encrypted", "s3-bucket-server-side-encryption-enabled", "s3-bucket-ssl-requests-only", "s3-bucket-public-read-prohibited", "s3-bucket-public-write-prohibited", "s3-account-level-public-access-blocks-periodic", "rds-instance-public-access-check", "ec2-instance-no-public-ip", "lambda-function-public-access-prohibited", "eks-secrets-encrypted", "eks-endpoint-no-public-access", "elasticsearch-encrypted-at-rest", "sns-encrypted-kms", "redshift-cluster-configuration-check", "cloud-trail-encryption-enabled", "cmk-backing-key-rotation-enabled", "ec2-imdsv2-check", "iam-policy-no-statements-with-admin-access", "iam-root-access-key-check", "mfa-enabled-for-iam-console-access", "root-account-mfa-enabled", "secretsmanager-rotation-enabled-check", "restricted-ssh", "vpc-flow-logs-enabled", "cw-loggroup-retention-period-check", "s3-bucket-logging-enabled"],
           "guardrails": ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED", "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC"],
           "rules_2025_notes": "Rule 6 makes safeguards PRESCRIPTIVE (not just 'reasonable'): mandatory encryption, masking, obfuscation, tokenization. Mandatory access controls, activity logs, continuity measures (backups). ONE-YEAR mandatory retention of unauthorized access logs. Data Processor agreements must include mandatory security clauses. These are minimum standards."
         },
@@ -66,7 +66,7 @@
           "section": "Act Section 8(6), Rule 8",
           "type": "technical",
           "aws_controls": ["S3 lifecycle policies", "DynamoDB TTL", "Backup retention policies", "S3 Object Lock for mandatory log retention", "EventBridge + Lambda for 48-hour erasure warnings", "CloudWatch Logs 1-year minimum retention"],
-          "config_rules": ["s3-lifecycle-policy-check", "dynamodb-table-encrypted-kms", "cw-loggroup-retention-period-check"],
+          "config_rules": ["s3-lifecycle-policy-check", "dynamodb-table-encrypted-kms", "dynamodb-pitr-enabled", "s3-bucket-versioning-enabled", "db-instance-backup-enabled", "cw-loggroup-retention-period-check"],
           "guardrails": ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
           "rules_2025_notes": "Rule 8 adds prescriptive requirements: erasure when user disengages (per Third Schedule categories), 48-hour warning before erasure, 1-year minimum log retention. Large-scale Data Fiduciaries (e-commerce 20M+, gaming 5M+, social media 20M+ Indian users) must erase after 3 years except for account access or legal compliance."
         },
@@ -75,7 +75,7 @@
           "section": "Act Sections 16-17, Rules 14-15",
           "type": "organizational",
           "aws_controls": ["Region deny SCPs", "S3 replication controls"],
-          "config_rules": [],
+          "config_rules": ["ebs-snapshot-public-restorable-check", "rds-snapshots-public-prohibited"],
           "guardrails": ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"],
           "rules_2025_notes": "Rules adopt blacklist approach (more lenient than GDPR): data may generally be transferred outside India. Restrictions only for government-designated blacklisted countries/entities. No blacklist published yet as of April 2026. SDFs may face additional data localization requirements per Rule 13."
         },
