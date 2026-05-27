@@ -65,7 +65,7 @@ If you have long-lived access keys in `~/.aws/credentials`, those work too — b
 
 ### 3. Add to your MCP client
 
-Add to `.kiro/settings/mcp.json` (or `claude_desktop_config.json` for Claude Desktop):
+Add to `.kiro/settings/mcp.json` (or `claude_desktop_config.json` for Claude Desktop, ~/.claude/mcp.json for claude):
 
 ```json
 {
