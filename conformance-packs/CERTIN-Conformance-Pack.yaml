@@ -1,0 +1,162 @@
+################################################################################
+# AWS Config Conformance Pack: CERT-In Directions on Information Security Practices 2022
+#
+# Framework: Directions dated April 28, 2022
+# Source: https://www.cert-in.org.in
+# Generated from: aws-india-compliance MCP server v1.2.0
+#
+# Domains covered: 1, 2, 5, 6, 7, 8
+# Total rules: 10
+#
+# Deployment:
+#   aws configservice put-conformance-pack \
+#     --conformance-pack-name CERTIN-Compliance-Conformance-Pack \
+#     --template-body file://<filename>.yaml
+#
+# All rule identifiers validated against AWS documentation.
+# Generated: 2026-05-16
+################################################################################
+
+Parameters:
+  CwLoggroupRetentionPeriodCheckParamMinRetentionTime:
+    Default: "180"
+    Type: String
+
+Resources:
+
+  ############################################################################
+  # DOMAIN 1: Incident Reporting Readiness
+  # Direction 1-3
+  ############################################################################
+
+  GuarddutyEnabledCentralized:
+    Properties:
+      ConfigRuleName: certin-guardduty-enabled-centralized
+      Description: >-
+        [CERTIN Domain 1 - Incident Reporting Readiness] AWS Config rule: guardduty-enabled-centralized. Mapped to CERT-In Directions on Information Security Practices 2022 Direction 1-3.
+      Source:
+        Owner: AWS
+        SourceIdentifier: GUARDDUTY_ENABLED_CENTRALIZED
+    Type: AWS::Config::ConfigRule
+
+  SecurityhubEnabled:
+    Properties:
+      ConfigRuleName: certin-securityhub-enabled
+      Description: >-
+        [CERTIN Domain 1 - Incident Reporting Readiness] AWS Config rule: securityhub-enabled. Mapped to CERT-In Directions on Information Security Practices 2022 Direction 1-3.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SECURITYHUB_ENABLED
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 2: Log Retention (180 days)
+  # Direction 4
+  ############################################################################
+
+  CwLoggroupRetentionPeriodCheck:
+    Properties:
+      ConfigRuleName: certin-cw-loggroup-retention-period-check
+      Description: >-
+        [CERTIN Domain 2 - Log Retention (180 days)] AWS Config rule: cw-loggroup-retention-period-check. Mapped to CERT-In Directions on Information Security Practices 2022 Direction 4.
+      InputParameters:
+        MinRetentionTime: !Ref CwLoggroupRetentionPeriodCheckParamMinRetentionTime
+      Source:
+        Owner: AWS
+        SourceIdentifier: CW_LOGGROUP_RETENTION_PERIOD_CHECK
+    Type: AWS::Config::ConfigRule
+
+  CloudtrailEnabled:
+    Properties:
+      ConfigRuleName: certin-cloudtrail-enabled
+      Description: >-
+        [CERTIN Domain 2 - Log Retention (180 days)] AWS Config rule: cloudtrail-enabled. Mapped to CERT-In Directions on Information Security Practices 2022 Direction 4.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENABLED
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 5: DDoS and Bot Protection
+  # CERT-In Directions 2022 - DDoS/Bot Attacks
+  ############################################################################
+
+  ShieldAdvancedEnabledAutorenew:
+    Properties:
+      ConfigRuleName: certin-shield-advanced-enabled-autorenew
+      Description: >-
+        [CERTIN Domain 5 - DDoS and Bot Protection] AWS Config rule: shield-advanced-enabled-autorenew. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - DDoS/Bot Attacks.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SHIELD_ADVANCED_ENABLED_AUTORENEW
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 6: Network Security and DNS Protection
+  # CERT-In Directions 2022 - Network Compromise
+  ############################################################################
+
+  VpcFlowLogsEnabled:
+    Properties:
+      ConfigRuleName: certin-vpc-flow-logs-enabled
+      Description: >-
+        [CERTIN Domain 6 - Network Security and DNS Protection] AWS Config rule: vpc-flow-logs-enabled. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - Network Compromise.
+      Source:
+        Owner: AWS
+        SourceIdentifier: VPC_FLOW_LOGS_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  Route53DnssecEnabled:
+    Properties:
+      ConfigRuleName: certin-route53-dnssec-enabled
+      Description: >-
+        [CERTIN Domain 6 - Network Security and DNS Protection] AWS Config rule: route53-dnssec-enabled. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - Network Compromise.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ROUTE53_QUERY_LOGGING_ENABLED
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 7: Endpoint and Malware Protection
+  # CERT-In Directions 2022 - Malware/Ransomware
+  ############################################################################
+
+  GuarddutyMalwareProtectionEnabled:
+    Properties:
+      ConfigRuleName: certin-guardduty-malware-protection-enabled
+      Description: >-
+        [CERTIN Domain 7 - Endpoint and Malware Protection] AWS Config rule: guardduty-malware-protection-enabled. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - Malware/Ransomware.
+      Source:
+        Owner: AWS
+        SourceIdentifier: GUARDDUTY_MALWARE_PROTECTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 8: Data Leakage Prevention
+  # CERT-In Directions 2022 - Data Breach/Leaks
+  ############################################################################
+
+  S3BucketPublicReadProhibited:
+    Properties:
+      ConfigRuleName: certin-s3-bucket-public-read-prohibited
+      Description: >-
+        [CERTIN Domain 8 - Data Leakage Prevention] AWS Config rule: s3-bucket-public-read-prohibited. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - Data Breach/Leaks.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketPublicWriteProhibited:
+    Properties:
+      ConfigRuleName: certin-s3-bucket-public-write-prohibited
+      Description: >-
+        [CERTIN Domain 8 - Data Leakage Prevention] AWS Config rule: s3-bucket-public-write-prohibited. Mapped to CERT-In Directions on Information Security Practices 2022 CERT-In Directions 2022 - Data Breach/Leaks.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_WRITE_PROHIBITED
+    Type: AWS::Config::ConfigRule

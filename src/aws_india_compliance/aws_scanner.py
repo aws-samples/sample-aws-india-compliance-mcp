@@ -156,20 +156,46 @@ def config_to_component(resource: dict) -> dict[str, Any]:
     }
 
 
-def scan_via_config(region: str, aggregator_name: str = "") -> list[dict[str, Any]]:
+def _discover_aggregator(config_client: Any) -> str:
+    """Auto-discover an organization-level Config Aggregator.
+
+    Calls describe_configuration_aggregators and returns the first aggregator
+    that has OrganizationAggregationSource (org-wide). If none found, returns
+    empty string (single-account fallback).
+    """
+    try:
+        resp = config_client.describe_configuration_aggregators()
+        aggregators = resp.get("ConfigurationAggregators", [])
+        # Prefer organization aggregators
+        for agg in aggregators:
+            if agg.get("OrganizationAggregationSource"):
+                name = agg["ConfigurationAggregatorName"]
+                _logger.info(f"Auto-discovered org aggregator: {name}")
+                return name
+        # Fall back to any aggregator (account-level aggregators still useful)
+        if aggregators:
+            name = aggregators[0]["ConfigurationAggregatorName"]
+            _logger.info(f"Auto-discovered aggregator (non-org): {name}")
+            return name
+    except Exception as e:
+        _logger.debug(f"Aggregator auto-discovery failed: {e}")
+    return ""
+
+
+def scan_via_config(region: str, aggregator_name: str = "") -> tuple[list[dict[str, Any]], str]:
     """Query AWS Config for all resources and their configurations.
 
     Uses Config Advanced Query (select_resource_config) for single-account
     scans, or select_aggregate_resource_config with an aggregator for
-    org-wide scans. Falls back to direct API calls for Security Hub,
-    GuardDuty, CloudTrail, and WAF.
+    org-wide scans. If aggregator_name is empty, attempts auto-discovery
+    of an organization aggregator before falling back to single-account mode.
 
     Args:
         region: AWS region to scan.
-        aggregator_name: Config Aggregator name for org-wide scan. Empty = single account.
+        aggregator_name: Config Aggregator name for org-wide scan. Empty = auto-discover.
 
     Returns:
-        List of component dicts ready for assessment.
+        Tuple of (list of component dicts ready for assessment, resolved aggregator name).
 
     Raises:
         RuntimeError: If Config query fails (recorder not enabled).
@@ -178,6 +204,10 @@ def scan_via_config(region: str, aggregator_name: str = "") -> list[dict[str, An
 
     session = boto3.Session(region_name=region)
     config_client = session.client("config")
+
+    # Auto-discover aggregator if not provided
+    if not aggregator_name:
+        aggregator_name = _discover_aggregator(config_client)
 
     type_list = ", ".join(f"'{t}'" for t in CONFIG_RESOURCE_TYPES)
     query = (
@@ -215,7 +245,7 @@ def scan_via_config(region: str, aggregator_name: str = "") -> list[dict[str, An
     _fallback_access_analyzer(session, region, components)
     _fallback_macie(session, region, components)
 
-    return components
+    return components, aggregator_name
 
 
 # ---- Property extractors ----

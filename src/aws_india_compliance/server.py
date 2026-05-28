@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from . import __version__
 from .assessment import assess
 from .aws_scanner import scan_via_config
+from .conformance_pack import generate_conformance_pack
 from .control_tower import assess_control_tower, scan_control_tower
 from .domains import DPDP_DOMAINS, RBI_DOMAINS, check_staleness
 from .knowledge import search_live, monitor_source_changes, update_content_hashes
@@ -49,12 +50,22 @@ def _validate_aggregator(name: str) -> str:
     return name
 
 
+def _get_report_dir() -> str:
+    """Return the reports directory path.
+
+    Priority:
+    1. REPORT_DIR environment variable (explicit override).
+    2. Current working directory + /reports (user's project root).
+    """
+    env_dir = os.environ.get("REPORT_DIR", "")
+    if env_dir:
+        return env_dir
+    return os.path.join(os.getcwd(), "reports")
+
+
 def _safe_report_path(report_path: str) -> str:
     """Validate report_path to prevent path traversal. Must be under reports/ dir."""
-    report_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "reports",
-    )
+    report_dir = _get_report_dir()
     resolved = os.path.realpath(report_path)
     if not resolved.startswith(os.path.realpath(report_dir)):
         raise ValueError("report_path must be within the reports/ directory")
@@ -76,7 +87,13 @@ try:
 except (ValueError, TypeError):
     _MCP_PORT = 8000
 
-mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
+# Only enable HTTP settings when transport is explicitly set to http/streamable-http.
+# For stdio (default, used by Claude Desktop and Kiro), these params are not needed.
+_transport = os.environ.get("MCP_TRANSPORT", "stdio")
+if _transport in ("streamable-http", "sse"):
+    mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
+else:
+    mcp = FastMCP("aws-india-compliance")
 
 
 def _log_tool_manifest() -> None:
@@ -334,6 +351,66 @@ def list_control_domains(framework: str = "dpdp") -> str:
 
 
 @mcp.tool()
+def generate_conformance_pack_tool(
+    framework: str = "dpdp",
+    include_domains: str = "",
+    exclude_domains: str = "",
+    pack_name_prefix: str = "",
+) -> str:
+    """Generate an AWS Config conformance pack YAML for a compliance framework.
+
+    Creates a deployable AWS Config conformance pack template containing
+    validated managed rules mapped to the specified regulatory framework's
+    control domains. All rule identifiers are validated against AWS documentation.
+
+    Supported frameworks: dpdp, rbi, sebi, certin.
+
+    Args:
+        framework: One of "dpdp", "rbi", "sebi", "certin". Default "dpdp".
+        include_domains: Comma-separated domain numbers to include (empty = all).
+        exclude_domains: Comma-separated domain numbers to exclude (empty = none).
+        pack_name_prefix: Optional prefix for the conformance pack name.
+
+    Returns:
+        JSON with yaml_content (the full template), pack_name, rule_count,
+        domains_covered, and deployment instructions.
+    """
+    # Parse domain filters
+    parsed_include: list[int] | None = None
+    if include_domains.strip():
+        try:
+            parsed_include = [int(d.strip()) for d in include_domains.split(",") if d.strip()]
+        except ValueError:
+            return json.dumps({"error": "include_domains must be comma-separated integers"})
+
+    parsed_exclude: list[int] | None = None
+    if exclude_domains.strip():
+        try:
+            parsed_exclude = [int(d.strip()) for d in exclude_domains.split(",") if d.strip()]
+        except ValueError:
+            return json.dumps({"error": "exclude_domains must be comma-separated integers"})
+
+    result = generate_conformance_pack(
+        framework=framework,
+        include_domains=parsed_include,
+        exclude_domains=parsed_exclude,
+        pack_name_prefix=pack_name_prefix,
+    )
+
+    if "error" in result:
+        return json.dumps(result)
+
+    # Add deployment instructions
+    result["deployment_command"] = (
+        f"aws configservice put-conformance-pack "
+        f"--conformance-pack-name {result['pack_name']} "
+        f"--template-body file://<filename>.yaml"
+    )
+
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
 def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: bool = False,
                      is_rbi_regulated: bool = False, is_sebi_regulated: bool = False,
                      aggregator_name: str = "",
@@ -350,7 +427,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
         is_significant_data_fiduciary: Whether the org is an SDF under DPDP Act.
         is_rbi_regulated: Whether the org is regulated by RBI.
         is_sebi_regulated: Whether the org is regulated by SEBI.
-        aggregator_name: Config Aggregator name for org-wide scan. Empty = single account.
+        aggregator_name: Config Aggregator name for org-wide scan. Empty = auto-discover.
         sebi_entity_tier: SEBI entity tier ("mii", "qualified_re", "other_re").
         exceptions: JSON string of exception rules for gap suppression.
         filter_tags: JSON string of {key: value} pairs — include only matching components.
@@ -392,7 +469,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             return json.dumps({"error": f"Invalid exclude_tags JSON: {e}"})
 
     try:
-        components = scan_via_config(region, aggregator_name)
+        components, resolved_aggregator = scan_via_config(region, aggregator_name)
         if not components:
             return json.dumps({"error": "No resources found. Ensure AWS Config recorder is enabled.", "region": region})
 
@@ -465,7 +542,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             import os, tempfile
             # Write full result to a report file (includes all new fields)
             full_result = {
-                "region": region, "aggregator": aggregator_name or "single-account",
+                "region": region, "aggregator": resolved_aggregator or "single-account",
                 "executive_summary": summary,
                 "scan_metadata": {
                     "scan_start": scan_start.isoformat(),
@@ -480,7 +557,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
                 **result, "remediation_timeline": timeline,
                 **({"staleness_warning": sw} if (sw := _get_staleness_warning()) else {}),
             }
-            report_dir = os.environ.get("REPORT_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "reports"))
+            report_dir = os.environ.get("REPORT_DIR", _get_report_dir())
             os.makedirs(report_dir, exist_ok=True)
             report_file = os.path.join(report_dir, f"scan_report_{region}_{scan_start.strftime('%Y%m%d_%H%M%S')}.json")
             try:
@@ -497,7 +574,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             result_gaps = all_gaps
 
         response: dict[str, Any] = {
-            "region": region, "aggregator": aggregator_name or "single-account",
+            "region": region, "aggregator": resolved_aggregator or "single-account",
             "executive_summary": summary,
             "scan_metadata": result["scan_metadata"],
             "dpdp_posture": result["dpdp_posture"],
@@ -1033,7 +1110,7 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
             return json.dumps({"error": f"Invalid JSON: {_sanitize_error(e)}"})
     else:
         # Try to find the latest report in the reports directory
-        report_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "reports")
+        report_dir = _get_report_dir()
         if os.path.isdir(report_dir):
             json_files = sorted(
                 [f for f in os.listdir(report_dir) if f.endswith(".json")],
@@ -1065,10 +1142,7 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
     # Generate DOCX if requested
     if output_format.lower() == "docx":
         from .docx_formatter import generate_docx
-        report_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            "reports",
-        )
+        report_dir = _get_report_dir()
         os.makedirs(report_dir, exist_ok=True)
 
         # For docx, we pass CT data as second arg if available

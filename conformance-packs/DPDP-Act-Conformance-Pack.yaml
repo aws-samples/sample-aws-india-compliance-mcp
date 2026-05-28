@@ -1,0 +1,559 @@
+################################################################################
+# AWS Config Conformance Pack: Digital Personal Data Protection (DPDP) Act 2023
+# + Rules 2025
+#
+# Framework: DPDP Act 2023 + Rules notified November 14, 2025
+# Source: https://dpdpact.in
+# Generated from: aws-india-compliance MCP server control_mappings.json v1.2.0
+#
+# This conformance pack maps AWS Config managed rules to DPDP Act control
+# domains. It covers the technically verifiable domains:
+#   - Domain 5: Breach Notification (Act Section 8(5), Rule 7)
+#   - Domain 6: Reasonable Security Safeguards (Act Section 8(4), Rule 6)
+#   - Domain 7: Data Retention Limits (Act Section 8(6), Rule 8)
+#   - Domain 8: Cross-Border Data Transfer (Act Sections 16-17, Rules 14-15)
+#
+# Note: Domains 1-4, 9-10 are organizational/process controls that cannot be
+# fully assessed via AWS Config rules alone. They require manual verification.
+#
+# Deployment:
+#   aws configservice put-conformance-pack \
+#     --conformance-pack-name DPDP-Act-2023-Conformance-Pack \
+#     --template-body file://conformance-packs/DPDP-Act-Conformance-Pack.yaml \
+#     --profile default
+#
+# All rule identifiers validated against AWS documentation (May 2026).
+# Last updated: 2026-05-15
+################################################################################
+
+Parameters:
+  CwLoggroupRetentionPeriodCheckParamMinRetentionTime:
+    Default: "365"
+    Type: String
+
+Resources:
+
+  ############################################################################
+  # DOMAIN 5: Breach Notification
+  # DPDP Act Section 8(5), Rules 2025 Rule 7
+  # Rule 7 requires: NO threshold for breach reporting, dual notification
+  # (DPB + Data Principals), immediate + 72-hour detailed report.
+  ############################################################################
+
+  GuardDutyEnabledCentralized:
+    Properties:
+      ConfigRuleName: dpdp-guardduty-enabled-centralized
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures Amazon GuardDuty is
+        enabled for continuous threat detection. Required for identifying
+        personal data breaches per DPDP Act Section 8(5) and Rule 7.
+      Source:
+        Owner: AWS
+        SourceIdentifier: GUARDDUTY_ENABLED_CENTRALIZED
+    Type: AWS::Config::ConfigRule
+
+  SecurityHubEnabled:
+    Properties:
+      ConfigRuleName: dpdp-securityhub-enabled
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures AWS Security Hub is
+        enabled for centralized security findings. Supports breach detection
+        and reporting obligations under Rule 7.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SECURITYHUB_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailEnabled:
+    Properties:
+      ConfigRuleName: dpdp-cloudtrail-enabled
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures AWS CloudTrail is
+        enabled for API activity logging. Required for breach investigation
+        and evidence preservation per Rule 7.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailLogFileValidationEnabled:
+    Properties:
+      ConfigRuleName: dpdp-cloudtrail-log-file-validation
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures CloudTrail log file
+        integrity validation is enabled. Provides tamper-proof evidence for
+        breach investigations and DPB reporting.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_LOG_FILE_VALIDATION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailCloudWatchLogsEnabled:
+    Properties:
+      ConfigRuleName: dpdp-cloudtrail-cloudwatch-logs
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures CloudTrail is
+        integrated with CloudWatch Logs for real-time breach alerting.
+        Supports immediate notification requirement under Rule 7.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_CLOUD_WATCH_LOGS_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudWatchLogGroupEncrypted:
+    Properties:
+      ConfigRuleName: dpdp-cloudwatch-log-group-encrypted
+      Description: >-
+        [DPDP Domain 5 - Breach Notification] Ensures CloudWatch Log Groups
+        are encrypted with KMS. Protects breach investigation logs and
+        audit evidence integrity.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUDWATCH_LOG_GROUP_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  ############################################################################
+  # DOMAIN 6: Reasonable Security Safeguards
+  # DPDP Act Section 8(4), Rules 2025 Rule 6 (6.1.a-g)
+  # Rule 6 makes safeguards PRESCRIPTIVE: mandatory encryption, masking,
+  # obfuscation, tokenization. Mandatory access controls, activity logs,
+  # continuity measures. ONE-YEAR mandatory retention of access logs.
+  ############################################################################
+
+  # --- Encryption at Rest (Rule 6.1.d) ---
+
+  EncryptedVolumes:
+    Properties:
+      ConfigRuleName: dpdp-encrypted-volumes
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures EBS volumes are
+        encrypted at rest. Rule 6.1.d mandates encryption of personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ENCRYPTED_VOLUMES
+    Type: AWS::Config::ConfigRule
+
+  RdsStorageEncrypted:
+    Properties:
+      ConfigRuleName: dpdp-rds-storage-encrypted
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures RDS instances have
+        storage encryption enabled. Rule 6.1.d mandates encryption for
+        databases storing personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_STORAGE_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketServerSideEncryptionEnabled:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-sse-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 buckets have
+        server-side encryption enabled. Rule 6.1.d mandates encryption
+        for stored personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketSslRequestsOnly:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-ssl-requests-only
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 bucket policies
+        require SSL/TLS for all requests. Rule 6.1.c mandates integrity
+        and confidentiality of personal data in transit.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_SSL_REQUESTS_ONLY
+    Type: AWS::Config::ConfigRule
+
+  EksSecretsEncrypted:
+    Properties:
+      ConfigRuleName: dpdp-eks-secrets-encrypted
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures EKS cluster
+        Kubernetes secrets are encrypted with KMS. Protects sensitive
+        configuration data per Rule 6.1.d.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EKS_SECRETS_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  ElasticsearchEncryptedAtRest:
+    Properties:
+      ConfigRuleName: dpdp-elasticsearch-encrypted-at-rest
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures OpenSearch/Elasticsearch
+        domains have encryption at rest enabled. Protects search indices
+        containing personal data per Rule 6.1.d.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ELASTICSEARCH_ENCRYPTED_AT_REST
+    Type: AWS::Config::ConfigRule
+
+  SnsEncryptedKms:
+    Properties:
+      ConfigRuleName: dpdp-sns-encrypted-kms
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures SNS topics are
+        encrypted with KMS. Protects notification messages that may
+        contain personal data references.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SNS_ENCRYPTED_KMS
+    Type: AWS::Config::ConfigRule
+
+  RedshiftClusterEncrypted:
+    Properties:
+      ConfigRuleName: dpdp-redshift-cluster-encrypted
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures Redshift clusters
+        are encrypted and have audit logging. Rule 6.1.d mandates encryption
+        for data warehouses containing personal data.
+      InputParameters:
+        clusterDbEncrypted: "true"
+        loggingEnabled: "true"
+      Source:
+        Owner: AWS
+        SourceIdentifier: REDSHIFT_CLUSTER_CONFIGURATION_CHECK
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailEncryptionEnabled:
+    Properties:
+      ConfigRuleName: dpdp-cloud-trail-encryption-enabled
+      Description: >-
+        [DPDP Domains 5,6 - Breach/Security] Ensures CloudTrail logs are
+        encrypted with KMS. Protects audit evidence integrity for breach
+        investigations and access monitoring.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENCRYPTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CmkBackingKeyRotationEnabled:
+    Properties:
+      ConfigRuleName: dpdp-cmk-backing-key-rotation-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures KMS customer-managed
+        keys have automatic annual rotation enabled. Supports encryption
+        key management best practices per Rule 6.1.d.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CMK_BACKING_KEY_ROTATION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  # --- Public Access Prevention (Rule 6.1.a) ---
+
+  S3BucketPublicReadProhibited:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-public-read-prohibited
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 buckets do not
+        allow public read access. Rule 6.1.a mandates prevention of
+        unauthorized access to personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketPublicWriteProhibited:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-public-write-prohibited
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 buckets do not
+        allow public write access. Rule 6.1.a mandates prevention of
+        unauthorized modification of personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_WRITE_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  S3AccountLevelPublicAccessBlocks:
+    Properties:
+      ConfigRuleName: dpdp-s3-account-level-public-access-blocks
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 Block Public
+        Access is enabled at the account level. Provides defense-in-depth
+        against accidental public exposure of personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC
+    Type: AWS::Config::ConfigRule
+
+  RdsInstancePublicAccessCheck:
+    Properties:
+      ConfigRuleName: dpdp-rds-instance-public-access-check
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures RDS instances are
+        not publicly accessible. Prevents unauthorized access to databases
+        containing personal data per Rule 6.1.a.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_INSTANCE_PUBLIC_ACCESS_CHECK
+    Type: AWS::Config::ConfigRule
+
+  Ec2InstanceNoPublicIp:
+    Properties:
+      ConfigRuleName: dpdp-ec2-instance-no-public-ip
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures EC2 instances do
+        not have public IP addresses. Reduces attack surface for systems
+        processing personal data per Rule 6.1.a.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_INSTANCE_NO_PUBLIC_IP
+    Type: AWS::Config::ConfigRule
+
+  LambdaFunctionPublicAccessProhibited:
+    Properties:
+      ConfigRuleName: dpdp-lambda-function-public-access-prohibited
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures Lambda functions
+        are not publicly accessible. Prevents unauthorized invocation of
+        functions processing personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  EksEndpointNoPublicAccess:
+    Properties:
+      ConfigRuleName: dpdp-eks-endpoint-no-public-access
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures EKS cluster API
+        endpoint is not publicly accessible. Prevents unauthorized access
+        to container orchestration systems processing personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EKS_ENDPOINT_NO_PUBLIC_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  # --- Access Controls (Rule 6.1.f) ---
+
+  IamPolicyNoStatementsWithAdminAccess:
+    Properties:
+      ConfigRuleName: dpdp-iam-no-admin-access
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures no IAM policies
+        grant full administrative access. Rule 6.1.f mandates appropriate
+        access controls for personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  IamRootAccessKeyCheck:
+    Properties:
+      ConfigRuleName: dpdp-iam-root-access-key-check
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures root account access
+        keys do not exist. Root access bypasses all access controls,
+        violating Rule 6.1.f least-privilege requirements.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_ROOT_ACCESS_KEY_CHECK
+    Type: AWS::Config::ConfigRule
+
+  MfaEnabledForIamConsoleAccess:
+    Properties:
+      ConfigRuleName: dpdp-mfa-enabled-iam-console
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures MFA is enabled for
+        all IAM users with console access. Multi-factor authentication
+        strengthens access controls per Rule 6.1.f.
+      Source:
+        Owner: AWS
+        SourceIdentifier: MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  RootAccountMfaEnabled:
+    Properties:
+      ConfigRuleName: dpdp-root-account-mfa-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures the root account
+        has MFA enabled. Critical access control for the most privileged
+        account per Rule 6.1.f.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ROOT_ACCOUNT_MFA_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  SecretsManagerRotationEnabledCheck:
+    Properties:
+      ConfigRuleName: dpdp-secretsmanager-rotation-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures Secrets Manager
+        secrets have rotation enabled. Supports access control hygiene
+        for systems processing personal data per Rule 6.1.f.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SECRETSMANAGER_ROTATION_ENABLED_CHECK
+    Type: AWS::Config::ConfigRule
+
+  # --- Instance Security ---
+
+  Ec2Imdsv2Check:
+    Properties:
+      ConfigRuleName: dpdp-ec2-imdsv2-check
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures EC2 instances
+        require IMDSv2 (HttpTokens=required). Prevents SSRF-based
+        credential theft that could lead to personal data exposure.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_IMDSV2_CHECK
+    Type: AWS::Config::ConfigRule
+
+  # --- Network Security ---
+
+  RestrictedSsh:
+    Properties:
+      ConfigRuleName: dpdp-restricted-ssh
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures security groups do
+        not allow unrestricted SSH access (0.0.0.0/0 on port 22). Prevents
+        unauthorized network access to systems with personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: INCOMING_SSH_DISABLED
+    Type: AWS::Config::ConfigRule
+
+  VpcFlowLogsEnabled:
+    Properties:
+      ConfigRuleName: dpdp-vpc-flow-logs-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures VPC Flow Logs are
+        enabled. Rule 6.1.g mandates monitoring of access to personal data
+        processing systems.
+      Source:
+        Owner: AWS
+        SourceIdentifier: VPC_FLOW_LOGS_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  # --- Activity Logging (Rule 6.1.g - 1-year retention) ---
+
+  CwLoggroupRetentionPeriodCheck:
+    Properties:
+      ConfigRuleName: dpdp-cw-loggroup-retention-period
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures CloudWatch Log Groups
+        have retention set to at least 365 days. Rule 6 mandates ONE-YEAR
+        mandatory retention of unauthorized access logs.
+      InputParameters:
+        MinRetentionTime: !Ref CwLoggroupRetentionPeriodCheckParamMinRetentionTime
+      Source:
+        Owner: AWS
+        SourceIdentifier: CW_LOGGROUP_RETENTION_PERIOD_CHECK
+    Type: AWS::Config::ConfigRule
+
+  S3BucketLoggingEnabled:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-logging-enabled
+      Description: >-
+        [DPDP Domain 6 - Security Safeguards] Ensures S3 buckets have
+        access logging enabled. Rule 6.1.g mandates activity logs for
+        monitoring unauthorized access to personal data.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_LOGGING_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  ############################################################################
+  # DOMAIN 7: Data Retention Limits
+  # DPDP Act Section 8(6), Rules 2025 Rule 8
+  # Rule 8 adds prescriptive requirements: erasure when user disengages,
+  # 48-hour warning before erasure, 1-year minimum log retention.
+  ############################################################################
+
+  S3LifecyclePolicyCheck:
+    Properties:
+      ConfigRuleName: dpdp-s3-lifecycle-policy-check
+      Description: >-
+        [DPDP Domain 7 - Data Retention] Ensures S3 buckets have lifecycle
+        policies configured. Rule 8 requires erasure of personal data when
+        purpose is fulfilled or user disengages.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_LIFECYCLE_POLICY_CHECK
+    Type: AWS::Config::ConfigRule
+
+  DynamodbTableEncryptedKms:
+    Properties:
+      ConfigRuleName: dpdp-dynamodb-table-encrypted-kms
+      Description: >-
+        [DPDP Domain 7 - Data Retention] Ensures DynamoDB tables use KMS
+        encryption. Supports crypto-shredding as a data erasure mechanism
+        when retention period expires per Rule 8.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DYNAMODB_TABLE_ENCRYPTED_KMS
+    Type: AWS::Config::ConfigRule
+
+  DynamodbPitrEnabled:
+    Properties:
+      ConfigRuleName: dpdp-dynamodb-pitr-enabled
+      Description: >-
+        [DPDP Domain 7 - Data Retention] Ensures DynamoDB tables have
+        Point-in-Time Recovery enabled. Supports data recovery and
+        retention management per Rule 8.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DYNAMODB_PITR_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketVersioningEnabled:
+    Properties:
+      ConfigRuleName: dpdp-s3-bucket-versioning-enabled
+      Description: >-
+        [DPDP Domain 7 - Data Retention] Ensures S3 buckets have versioning
+        enabled. Provides audit trail of data modifications and supports
+        verifiable erasure per Rule 8.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_VERSIONING_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  DbInstanceBackupEnabled:
+    Properties:
+      ConfigRuleName: dpdp-db-instance-backup-enabled
+      Description: >-
+        [DPDP Domain 7 - Data Retention] Ensures RDS instances have
+        automated backups enabled. Supports data recovery and verifiable
+        retention management per Rule 8.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DB_INSTANCE_BACKUP_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  ############################################################################
+  # DOMAIN 8: Cross-Border Data Transfer
+  # DPDP Act Sections 16-17, Rules 14-15
+  # Rules adopt blacklist approach: data may generally be transferred outside
+  # India. Restrictions only for government-designated blacklisted countries.
+  ############################################################################
+
+  EbsSnapshotPublicRestorableCheck:
+    Properties:
+      ConfigRuleName: dpdp-ebs-snapshot-public-restorable-check
+      Description: >-
+        [DPDP Domain 8 - Cross-Border Transfer] Ensures EBS snapshots are
+        not publicly restorable. Prevents uncontrolled cross-border data
+        transfer via public snapshot sharing.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK
+    Type: AWS::Config::ConfigRule
+
+  RdsSnapshotsPublicProhibited:
+    Properties:
+      ConfigRuleName: dpdp-rds-snapshots-public-prohibited
+      Description: >-
+        [DPDP Domain 8 - Cross-Border Transfer] Ensures RDS snapshots are
+        not publicly accessible. Prevents uncontrolled cross-border data
+        transfer via public database snapshots.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_SNAPSHOTS_PUBLIC_PROHIBITED
+    Type: AWS::Config::ConfigRule

@@ -100,13 +100,13 @@ If it returns 10 domains, you're set. To scan your AWS account:
 - Python 3.10+
 - AWS Config recorder enabled in target accounts/regions
 - IAM credentials with read-only access (see IAM policy below)
-- For org-wide scans: a Config Aggregator name
+- For org-wide scans: a Config Aggregator (auto-discovered, or pass name explicitly)
 
 ## Tools (11)
 
 | Tool | Purpose |
 |---|---|
-| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Pass `aggregator_name` for org-wide scans. Supports tag filtering, exception rules, and SEBI entity tiering. |
+| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Auto-discovers org aggregators; pass `aggregator_name` to override. Supports tag filtering, exception rules, and SEBI entity tiering. |
 | `scan_control_tower_tool` | Enumerate enabled guardrails across OUs, recommend missing ones per framework including CERT-In. Per-OU breakdown with domain coverage. |
 | `parse_architecture` | Parse CloudFormation (JSON/YAML), Terraform (HCL), or draw.io (XML) templates. Max 10 MB. |
 | `assess_compliance` | Assess a component list against control domains. Supports tag filtering, exception suppression, and SEBI entity tiering. |
@@ -199,13 +199,13 @@ LLM-assisted mapping updates via `propose_mapping_update` → `apply_mapping_upd
 
 ## How scanning works
 
-1. AWS Config Advanced Query pulls resource configurations in a single API call.
+1. AWS Config Advanced Query pulls resource configurations in a single API call. If no aggregator name is provided, the scanner auto-discovers organization-level aggregators for org-wide coverage.
 2. The scanner extracts compliance-relevant properties per resource type (encryption, public access, logging, retention, key rotation, TLS enforcement, VPC flow logs, security group rules, secrets rotation, backup plans, etc.).
 3. Fallback API checks cover Security Hub, GuardDuty, CloudTrail, WAF, AWS Backup, and Amazon Inspector.
 4. The assessment engine evaluates each resource against applicable DPDP, RBI, SEBI, and CERT-In control domains.
 5. Results include risk-rated gaps with confidence levels, evidence, specific remediation steps, and regulatory section references.
 
-For org-wide scans, pass the Config Aggregator name (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
+For org-wide scans, the scanner auto-discovers organization-level Config Aggregators via `DescribeConfigurationAggregators`. If one is found, it's used automatically — no need to pass a name. You can still pass an explicit `aggregator_name` to override auto-discovery (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
 
 ## Resource checks
 
@@ -328,6 +328,35 @@ This server performs read-only operations. It does not modify AWS resources.
 
 For org-wide scans, add `config:SelectAggregateResourceConfig` on the aggregator ARN. Consider adding an explicit Deny statement for destructive actions (DeleteTrail, StopLogging, DeleteDetector, etc.).
 
+## Conformance packs
+
+The project includes a conformance pack generator that produces deployable AWS Config conformance pack YAML templates from `control_mappings.json`. Each pack maps AWS-managed Config rules to regulatory control domains.
+
+A pre-built DPDP Act conformance pack is available at `conformance-packs/DPDP-Act-Conformance-Pack.yaml`. Deploy it with:
+
+```bash
+aws configservice put-conformance-pack \
+  --conformance-pack-name DPDP-Act-2023-Conformance-Pack \
+  --template-body file://conformance-packs/DPDP-Act-Conformance-Pack.yaml
+```
+
+To generate packs programmatically for any framework:
+
+```python
+from aws_india_compliance.conformance_pack import generate_conformance_pack
+
+result = generate_conformance_pack(framework="dpdp")  # or "rbi", "sebi", "certin"
+print(result["yaml_content"])
+```
+
+Options:
+- `framework`: `"dpdp"`, `"rbi"`, `"sebi"`, or `"certin"`
+- `include_domains`: List of domain numbers to include (default: all)
+- `exclude_domains`: List of domain numbers to exclude
+- `pack_name_prefix`: Custom prefix for the conformance pack name
+
+Framework-specific parameter overrides are applied automatically (e.g., CERT-In uses 180-day log retention, DPDP uses 365-day).
+
 ## Project structure
 
 ```
@@ -340,7 +369,10 @@ src/aws_india_compliance/
   knowledge.py           # Live regulatory text search + content hash monitoring
   domains.py             # Domain definitions + manifest loader + staleness check
   report_formatter.py    # Markdown report generator (account scan + Control Tower)
+  docx_formatter.py      # DOCX report generator with color coding
+  conformance_pack.py    # AWS Config conformance pack YAML generator
   control_mappings.json  # Versioned control-to-AWS mapping manifest (DPDP, RBI, SEBI, CERT-In)
+conformance-packs/       # Pre-built conformance pack templates
 tests/
   test_assessment.py     # Assessment engine tests
   test_aws_scanner.py    # Scanner tests (mocked boto3)

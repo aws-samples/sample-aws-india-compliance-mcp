@@ -1,0 +1,218 @@
+################################################################################
+# AWS Config Conformance Pack: SEBI Cybersecurity and Cyber Resilience Framework (CSCRF)
+#
+# Framework: Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024)
+# Source: https://www.sebi.gov.in/legal/circulars/aug-2024/cybersecurity-and-cyber-resilience-framework-cscrf-_85964.html
+# Generated from: aws-india-compliance MCP server v1.2.0
+#
+# Domains covered: 2, 3, 4, 6
+# Total rules: 16
+#
+# Deployment:
+#   aws configservice put-conformance-pack \
+#     --conformance-pack-name SEBI-Compliance-Conformance-Pack \
+#     --template-body file://<filename>.yaml
+#
+# All rule identifiers validated against AWS documentation.
+# Generated: 2026-05-16
+################################################################################
+
+Parameters:
+  CloudwatchAlarmActionCheckParamalarmActionRequired:
+    Default: "true"
+    Type: String
+  CloudwatchAlarmActionCheckParaminsufficientDataActionRequired:
+    Default: "true"
+    Type: String
+  CloudwatchAlarmActionCheckParamokActionRequired:
+    Default: "false"
+    Type: String
+
+Resources:
+
+  ############################################################################
+  # DOMAIN 2: Cyber Risk Identification
+  # Section 3.2 / Principle 2-3
+  ############################################################################
+
+  Ec2InstanceManagedBySystemsManager:
+    Properties:
+      ConfigRuleName: sebi-ec2-instance-managed-by-systems-manager
+      Description: >-
+        [SEBI Domain 2 - Cyber Risk Identification] AWS Config rule: ec2-instance-managed-by-systems-manager. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.2 / Principle 2-3.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_INSTANCE_MANAGED_BY_SSM
+    Type: AWS::Config::ConfigRule
+
+  Ec2StoppedInstance:
+    Properties:
+      ConfigRuleName: sebi-ec2-stopped-instance
+      Description: >-
+        [SEBI Domain 2 - Cyber Risk Identification] AWS Config rule: ec2-stopped-instance. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.2 / Principle 2-3.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_STOPPED_INSTANCE
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 3: Cyber Protection
+  # Section 3.3 / Security IN the Cloud
+  ############################################################################
+
+  EncryptedVolumes:
+    Properties:
+      ConfigRuleName: sebi-encrypted-volumes
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: encrypted-volumes. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ENCRYPTED_VOLUMES
+    Type: AWS::Config::ConfigRule
+
+  RdsStorageEncrypted:
+    Properties:
+      ConfigRuleName: sebi-rds-storage-encrypted
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: rds-storage-encrypted. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_STORAGE_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketServerSideEncryptionEnabled:
+    Properties:
+      ConfigRuleName: sebi-s3-bucket-server-side-encryption-enabled
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: s3-bucket-server-side-encryption-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketPublicReadProhibited:
+    Properties:
+      ConfigRuleName: sebi-s3-bucket-public-read-prohibited
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: s3-bucket-public-read-prohibited. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  IamPolicyNoStatementsWithAdminAccess:
+    Properties:
+      ConfigRuleName: sebi-iam-policy-no-statements-with-admin-access
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: iam-policy-no-statements-with-admin-access. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  MfaEnabledForIamConsoleAccess:
+    Properties:
+      ConfigRuleName: sebi-mfa-enabled-for-iam-console-access
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: mfa-enabled-for-iam-console-access. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  VpcFlowLogsEnabled:
+    Properties:
+      ConfigRuleName: sebi-vpc-flow-logs-enabled
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: vpc-flow-logs-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: VPC_FLOW_LOGS_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  RestrictedSsh:
+    Properties:
+      ConfigRuleName: sebi-restricted-ssh
+      Description: >-
+        [SEBI Domain 3 - Cyber Protection] AWS Config rule: restricted-ssh. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.3 / Security IN the Cloud.
+      Source:
+        Owner: AWS
+        SourceIdentifier: INCOMING_SSH_DISABLED
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 4: Cyber Detection
+  # Section 3.4 / SOC Integration
+  ############################################################################
+
+  GuarddutyEnabledCentralized:
+    Properties:
+      ConfigRuleName: sebi-guardduty-enabled-centralized
+      Description: >-
+        [SEBI Domain 4 - Cyber Detection] AWS Config rule: guardduty-enabled-centralized. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.4 / SOC Integration.
+      Source:
+        Owner: AWS
+        SourceIdentifier: GUARDDUTY_ENABLED_CENTRALIZED
+    Type: AWS::Config::ConfigRule
+
+  SecurityhubEnabled:
+    Properties:
+      ConfigRuleName: sebi-securityhub-enabled
+      Description: >-
+        [SEBI Domain 4 - Cyber Detection] AWS Config rule: securityhub-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.4 / SOC Integration.
+      Source:
+        Owner: AWS
+        SourceIdentifier: SECURITYHUB_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudwatchAlarmActionCheck:
+    Properties:
+      ConfigRuleName: sebi-cloudwatch-alarm-action-check
+      Description: >-
+        [SEBI Domain 4 - Cyber Detection] AWS Config rule: cloudwatch-alarm-action-check. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.4 / SOC Integration.
+      InputParameters:
+        alarmActionRequired: !Ref CloudwatchAlarmActionCheckParamalarmActionRequired
+        insufficientDataActionRequired: !Ref CloudwatchAlarmActionCheckParaminsufficientDataActionRequired
+        okActionRequired: !Ref CloudwatchAlarmActionCheckParamokActionRequired
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUDWATCH_ALARM_ACTION_CHECK
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 6: Cyber Recovery
+  # Section 3.6 / BCP-DR
+  ############################################################################
+
+  DbInstanceBackupEnabled:
+    Properties:
+      ConfigRuleName: sebi-db-instance-backup-enabled
+      Description: >-
+        [SEBI Domain 6 - Cyber Recovery] AWS Config rule: db-instance-backup-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.6 / BCP-DR.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DB_INSTANCE_BACKUP_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  DynamodbPitrEnabled:
+    Properties:
+      ConfigRuleName: sebi-dynamodb-pitr-enabled
+      Description: >-
+        [SEBI Domain 6 - Cyber Recovery] AWS Config rule: dynamodb-pitr-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.6 / BCP-DR.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DYNAMODB_PITR_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketVersioningEnabled:
+    Properties:
+      ConfigRuleName: sebi-s3-bucket-versioning-enabled
+      Description: >-
+        [SEBI Domain 6 - Cyber Recovery] AWS Config rule: s3-bucket-versioning-enabled. Mapped to SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) Section 3.6 / BCP-DR.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_VERSIONING_ENABLED
+    Type: AWS::Config::ConfigRule
