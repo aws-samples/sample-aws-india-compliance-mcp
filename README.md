@@ -100,13 +100,13 @@ If it returns 10 domains, you're set. To scan your AWS account:
 - Python 3.10+
 - AWS Config recorder enabled in target accounts/regions
 - IAM credentials with read-only access (see IAM policy below)
-- For org-wide scans: a Config Aggregator name
+- For org-wide scans: a Config Aggregator (auto-discovered, or pass name explicitly)
 
 ## Tools (11)
 
 | Tool | Purpose |
 |---|---|
-| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Pass `aggregator_name` for org-wide scans. Supports tag filtering, exception rules, and SEBI entity tiering. |
+| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Auto-discovers org aggregators; pass `aggregator_name` to override. Supports tag filtering, exception rules, and SEBI entity tiering. |
 | `scan_control_tower_tool` | Enumerate enabled guardrails across OUs, recommend missing ones per framework including CERT-In. Per-OU breakdown with domain coverage. |
 | `parse_architecture` | Parse CloudFormation (JSON/YAML), Terraform (HCL), or draw.io (XML) templates. Max 10 MB. |
 | `assess_compliance` | Assess a component list against control domains. Supports tag filtering, exception suppression, and SEBI entity tiering. |
@@ -199,13 +199,13 @@ LLM-assisted mapping updates via `propose_mapping_update` → `apply_mapping_upd
 
 ## How scanning works
 
-1. AWS Config Advanced Query pulls resource configurations in a single API call.
+1. AWS Config Advanced Query pulls resource configurations in a single API call. If no aggregator name is provided, the scanner auto-discovers organization-level aggregators for org-wide coverage.
 2. The scanner extracts compliance-relevant properties per resource type (encryption, public access, logging, retention, key rotation, TLS enforcement, VPC flow logs, security group rules, secrets rotation, backup plans, etc.).
 3. Fallback API checks cover Security Hub, GuardDuty, CloudTrail, WAF, AWS Backup, and Amazon Inspector.
 4. The assessment engine evaluates each resource against applicable DPDP, RBI, SEBI, and CERT-In control domains.
 5. Results include risk-rated gaps with confidence levels, evidence, specific remediation steps, and regulatory section references.
 
-For org-wide scans, pass the Config Aggregator name (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
+For org-wide scans, the scanner auto-discovers organization-level Config Aggregators via `DescribeConfigurationAggregators`. If one is found, it's used automatically — no need to pass a name. You can still pass an explicit `aggregator_name` to override auto-discovery (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
 
 ## Resource checks
 

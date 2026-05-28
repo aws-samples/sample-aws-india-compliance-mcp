@@ -50,12 +50,22 @@ def _validate_aggregator(name: str) -> str:
     return name
 
 
+def _get_report_dir() -> str:
+    """Return the reports directory path.
+
+    Priority:
+    1. REPORT_DIR environment variable (explicit override).
+    2. Current working directory + /reports (user's project root).
+    """
+    env_dir = os.environ.get("REPORT_DIR", "")
+    if env_dir:
+        return env_dir
+    return os.path.join(os.getcwd(), "reports")
+
+
 def _safe_report_path(report_path: str) -> str:
     """Validate report_path to prevent path traversal. Must be under reports/ dir."""
-    report_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "reports",
-    )
+    report_dir = _get_report_dir()
     resolved = os.path.realpath(report_path)
     if not resolved.startswith(os.path.realpath(report_dir)):
         raise ValueError("report_path must be within the reports/ directory")
@@ -417,7 +427,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
         is_significant_data_fiduciary: Whether the org is an SDF under DPDP Act.
         is_rbi_regulated: Whether the org is regulated by RBI.
         is_sebi_regulated: Whether the org is regulated by SEBI.
-        aggregator_name: Config Aggregator name for org-wide scan. Empty = single account.
+        aggregator_name: Config Aggregator name for org-wide scan. Empty = auto-discover.
         sebi_entity_tier: SEBI entity tier ("mii", "qualified_re", "other_re").
         exceptions: JSON string of exception rules for gap suppression.
         filter_tags: JSON string of {key: value} pairs — include only matching components.
@@ -459,7 +469,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             return json.dumps({"error": f"Invalid exclude_tags JSON: {e}"})
 
     try:
-        components = scan_via_config(region, aggregator_name)
+        components, resolved_aggregator = scan_via_config(region, aggregator_name)
         if not components:
             return json.dumps({"error": "No resources found. Ensure AWS Config recorder is enabled.", "region": region})
 
@@ -532,7 +542,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             import os, tempfile
             # Write full result to a report file (includes all new fields)
             full_result = {
-                "region": region, "aggregator": aggregator_name or "single-account",
+                "region": region, "aggregator": resolved_aggregator or "single-account",
                 "executive_summary": summary,
                 "scan_metadata": {
                     "scan_start": scan_start.isoformat(),
@@ -547,7 +557,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
                 **result, "remediation_timeline": timeline,
                 **({"staleness_warning": sw} if (sw := _get_staleness_warning()) else {}),
             }
-            report_dir = os.environ.get("REPORT_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "reports"))
+            report_dir = os.environ.get("REPORT_DIR", _get_report_dir())
             os.makedirs(report_dir, exist_ok=True)
             report_file = os.path.join(report_dir, f"scan_report_{region}_{scan_start.strftime('%Y%m%d_%H%M%S')}.json")
             try:
@@ -564,7 +574,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             result_gaps = all_gaps
 
         response: dict[str, Any] = {
-            "region": region, "aggregator": aggregator_name or "single-account",
+            "region": region, "aggregator": resolved_aggregator or "single-account",
             "executive_summary": summary,
             "scan_metadata": result["scan_metadata"],
             "dpdp_posture": result["dpdp_posture"],
@@ -1100,7 +1110,7 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
             return json.dumps({"error": f"Invalid JSON: {_sanitize_error(e)}"})
     else:
         # Try to find the latest report in the reports directory
-        report_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "reports")
+        report_dir = _get_report_dir()
         if os.path.isdir(report_dir):
             json_files = sorted(
                 [f for f in os.listdir(report_dir) if f.endswith(".json")],
@@ -1132,10 +1142,7 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
     # Generate DOCX if requested
     if output_format.lower() == "docx":
         from .docx_formatter import generate_docx
-        report_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            "reports",
-        )
+        report_dir = _get_report_dir()
         os.makedirs(report_dir, exist_ok=True)
 
         # For docx, we pass CT data as second arg if available
