@@ -1,13 +1,13 @@
 [project]
 name = "aws-india-compliance"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server to assess AWS infrastructure against India's DPDP Act 2023, RBI Master Direction, and SEBI CSCRF"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
-    { name = "Param Dharmavarapu", email = "paramdm@amazon.com" },
+    { name = "Paramanand Mallik", email = "paramdm@amazon.com" },
 ]
 keywords = [
     "mcp",
