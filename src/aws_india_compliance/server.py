@@ -56,11 +56,25 @@ def _get_report_dir() -> str:
     Priority:
     1. REPORT_DIR environment variable (explicit override).
     2. Current working directory + /reports (user's project root).
+    3. Fallback to OS temp directory if cwd/reports is not writable.
     """
     env_dir = os.environ.get("REPORT_DIR", "")
     if env_dir:
         return env_dir
-    return os.path.join(os.getcwd(), "reports")
+    cwd_reports = os.path.join(os.getcwd(), "reports")
+    # Check if we can write to the cwd-based reports dir
+    try:
+        os.makedirs(cwd_reports, exist_ok=True)
+        # Verify write access with a test file
+        test_file = os.path.join(cwd_reports, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("")
+        os.remove(test_file)
+        return cwd_reports
+    except OSError:
+        # Fall back to temp directory
+        import tempfile
+        return os.path.join(tempfile.gettempdir(), "aws-india-compliance-reports")
 
 
 def _safe_report_path(report_path: str) -> str:
