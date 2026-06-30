@@ -1,15 +1,51 @@
 [project]
 name = "aws-india-compliance"
 version = "0.1.0"
-description = "MCP server to assess AWS infrastructure against India's DPDP Act 2023 and RBI Master Direction on IT Governance 2023"
+description = "MCP server to assess AWS infrastructure against India's DPDP Act 2023, RBI Master Direction, and SEBI CSCRF"
 requires-python = ">=3.10"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+authors = [
+    { name = "Param Dharmavarapu", email = "paramdm@amazon.com" },
+]
+keywords = [
+    "mcp",
+    "compliance",
+    "dpdp",
+    "rbi",
+    "sebi",
+    "india",
+    "aws",
+    "data-protection",
+    "regulatory",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
 dependencies = [
     "mcp>=1.23.0",
     "boto3>=1.26.0",
     "defusedxml>=0.7.1",
     "python-docx>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/aws-samples/sample-aws-india-compliance-mcp"
+Repository = "https://github.com/aws-samples/sample-aws-india-compliance-mcp"
+Issues = "https://github.com/aws-samples/sample-aws-india-compliance-mcp/issues"
+Documentation = "https://github.com/aws-samples/sample-aws-india-compliance-mcp#readme"
 
 [project.scripts]
 aws-india-compliance = "aws_india_compliance.server:main"

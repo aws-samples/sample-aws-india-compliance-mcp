@@ -16,22 +16,56 @@ Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 ## Quick start
 
-### 1. Install
+### 1. Add to your MCP client
 
-```bash
-git clone https://github.com/aws-samples/sample-aws-india-compliance-mcp.git
-cd sample-aws-india-compliance-mcp
+No installation required. Add to your MCP config and `uvx` handles the rest:
 
-# Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install
-pip install .
-
-# Or with pinned dependencies
-pip install . -c constraints.txt
+**Kiro** (`.kiro/settings/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "uvx",
+      "args": ["aws-india-compliance@latest"],
+      "env": {
+        "AWS_PROFILE": "my-sso-profile"
+      }
+    }
+  }
+}
 ```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "uvx",
+      "args": ["aws-india-compliance@latest"],
+      "env": {
+        "AWS_PROFILE": "my-sso-profile"
+      }
+    }
+  }
+}
+```
+
+**Claude Code** (`~/.claude/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "uvx",
+      "args": ["aws-india-compliance@latest"],
+      "env": {
+        "AWS_PROFILE": "my-sso-profile"
+      }
+    }
+  }
+}
+```
+
+> Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) installed. On macOS: `brew install uv`
 
 ### 2. Configure AWS credentials
 
@@ -63,37 +97,35 @@ aws sts get-caller-identity --profile my-sso-profile
 **Alternative: static credentials (not recommended for teams)**
 If you have long-lived access keys in `~/.aws/credentials`, those work too — but SSO is preferred for security.
 
-### 3. Add to your MCP client
-
-Add to `.kiro/settings/mcp.json` (or `claude_desktop_config.json` for Claude Desktop, ~/.claude/mcp.json for claude):
-
-```json
-{
-  "mcpServers": {
-    "aws-india-compliance": {
-      "command": "/path/to/your/.venv/bin/python3",
-      "args": ["-m", "aws_india_compliance.server"],
-      "env": {
-        "PYTHONPATH": "/path/to/sample-aws-india-compliance-mcp/src",
-        "AWS_PROFILE": "my-sso-profile",
-        "LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-Replace `/path/to/your/.venv/bin/python3` with the actual path to your venv Python, and `my-sso-profile` with your SSO profile name.
-
-**Tip:** Run `which python3` inside your activated venv to get the exact path.
-
-### 4. Verify
+### 3. Verify
 
 Ask your MCP client:
 > "List the DPDP control domains"
 
 If it returns 10 domains, you're set. To scan your AWS account:
 > "Scan my AWS account in ap-south-1 for DPDP and RBI compliance"
+
+### Alternative: install from source (for development)
+
+```bash
+git clone https://github.com/aws-samples/sample-aws-india-compliance-mcp.git
+cd sample-aws-india-compliance-mcp
+pip install -e .
+```
+
+Then configure your MCP client to use the local install:
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "aws-india-compliance",
+      "env": {
+        "AWS_PROFILE": "my-sso-profile"
+      }
+    }
+  }
+}
+```
 
 ## Prerequisites
 
