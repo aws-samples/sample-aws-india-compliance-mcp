@@ -51,30 +51,16 @@ def _validate_aggregator(name: str) -> str:
 
 
 def _get_report_dir() -> str:
-    """Return the reports directory path.
+    """Return the reports directory path (only used when save_to_file=True).
 
     Priority:
     1. REPORT_DIR environment variable (explicit override).
     2. Current working directory + /reports (user's project root).
-    3. Fallback to OS temp directory if cwd/reports is not writable.
     """
     env_dir = os.environ.get("REPORT_DIR", "")
     if env_dir:
         return env_dir
-    cwd_reports = os.path.join(os.getcwd(), "reports")
-    # Check if we can write to the cwd-based reports dir
-    try:
-        os.makedirs(cwd_reports, exist_ok=True)
-        # Verify write access with a test file
-        test_file = os.path.join(cwd_reports, ".write_test")
-        with open(test_file, "w") as f:
-            f.write("")
-        os.remove(test_file)
-        return cwd_reports
-    except OSError:
-        # Fall back to temp directory
-        import tempfile
-        return os.path.join(tempfile.gettempdir(), "aws-india-compliance-reports")
+    return os.path.join(os.getcwd(), "reports")
 
 
 def _safe_report_path(report_path: str) -> str:
@@ -429,8 +415,12 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
                      is_rbi_regulated: bool = False, is_sebi_regulated: bool = False,
                      aggregator_name: str = "",
                      sebi_entity_tier: str = "", exceptions: str = "",
-                     filter_tags: str = "", exclude_tags: str = "") -> str:
+                     filter_tags: str = "", exclude_tags: str = "",
+                     save_to_file: bool = False) -> str:
     """Scan an AWS account's resources via AWS Config and assess compliance against DPDP and RBI.
+
+    Use this tool when the user says: "scan my AWS account", "scan my AWS organization",
+    "check my AWS compliance", or "assess my infrastructure".
 
     Uses AWS Config Advanced Query to pull all resource configurations in a single fast query.
     Requires AWS Config recorder to be enabled. Uses caller's AWS credentials.
@@ -446,6 +436,7 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
         exceptions: JSON string of exception rules for gap suppression.
         filter_tags: JSON string of {key: value} pairs — include only matching components.
         exclude_tags: JSON string of {key: value} pairs — exclude matching components.
+        save_to_file: If True, save full report JSON to the reports/ directory. Default False (return inline).
 
     Returns:
         JSON with discovered resources, compliance gaps, posture scores, and remediation.
@@ -530,15 +521,10 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             "tool_version": __version__,
         }
 
-        # --- Response size management ---
-        # Large org scans can produce thousands of gaps. To keep the MCP
-        # response within transport limits, we cap inline gaps and write
-        # the full report to a file when the payload would be too large.
+        # --- Build response ---
         all_gaps = result["gaps"]
-        full_report_path = None
-        gap_cap = 100  # max gaps inline
 
-        # Build gap summary by framework and risk (needed for both file and response)
+        # Build gap summary by framework and risk
         gap_summary: dict[str, dict[str, int]] = {}
         for g in all_gaps:
             fw = g.get("framework", "unknown")
@@ -546,46 +532,11 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             gap_summary.setdefault(fw, {}).setdefault(risk, 0)
             gap_summary[fw][risk] += 1
 
-        # Confidence distribution (needed for both file and response)
+        # Confidence distribution
         conf_dist: dict[str, int] = {}
         for g in all_gaps:
             c = g.get("confidence", "unknown")
             conf_dist[c] = conf_dist.get(c, 0) + 1
-
-        if len(all_gaps) > gap_cap:
-            import os, tempfile
-            # Write full result to a report file (includes all new fields)
-            full_result = {
-                "region": region, "aggregator": resolved_aggregator or "single-account",
-                "executive_summary": summary,
-                "scan_metadata": {
-                    "scan_start": scan_start.isoformat(),
-                    "scan_end": scan_end.isoformat(),
-                    "region": region,
-                    "tool_version": __version__,
-                },
-                "discovered_resources": [{"name": c["name"], "type": c["type"], "category": c["category"],
-                                           "region": c.get("region", ""), "account": c.get("account_id", "")} for c in components],
-                "gap_summary_by_framework": gap_summary,
-                "confidence_distribution": conf_dist,
-                **result, "remediation_timeline": timeline,
-                **({"staleness_warning": sw} if (sw := _get_staleness_warning()) else {}),
-            }
-            report_dir = os.environ.get("REPORT_DIR", _get_report_dir())
-            os.makedirs(report_dir, exist_ok=True)
-            report_file = os.path.join(report_dir, f"scan_report_{region}_{scan_start.strftime('%Y%m%d_%H%M%S')}.json")
-            try:
-                with open(report_file, "w") as f:
-                    json.dump(full_result, f, indent=2, default=str)
-                full_report_path = report_file
-            except OSError:
-                full_report_path = None
-
-            # Inline: only critical + high gaps, capped
-            priority_gaps = [g for g in all_gaps if g["risk"] in ("critical", "high")][:gap_cap]
-            result_gaps = priority_gaps
-        else:
-            result_gaps = all_gaps
 
         response: dict[str, Any] = {
             "region": region, "aggregator": resolved_aggregator or "single-account",
@@ -602,14 +553,24 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             "confidence_distribution": conf_dist,
             "per_account": result.get("per_account"),
             "resource_compliance": result.get("resource_compliance"),
-            "gaps": result_gaps,
+            "gaps": all_gaps,
             "remediation_timeline": timeline,
         }
-        if full_report_path:
-            response["full_report_file"] = full_report_path
-            response["note"] = f"Response trimmed to {len(result_gaps)} priority gaps. Full {len(all_gaps)} gaps saved to {full_report_path}"
+
         if (sw2 := _get_staleness_warning()):
             response["staleness_warning"] = sw2
+
+        # Optionally persist full report to disk
+        if save_to_file:
+            report_dir = _get_report_dir()
+            try:
+                os.makedirs(report_dir, exist_ok=True)
+                report_file = os.path.join(report_dir, f"scan_report_{region}_{scan_start.strftime('%Y%m%d_%H%M%S')}.json")
+                with open(report_file, "w") as f:
+                    json.dump(response, f, indent=2, default=str)
+                response["saved_to_file"] = report_file
+            except OSError as e:
+                response["save_error"] = f"Could not write report file: {_sanitize_error(e)}"
 
         return json.dumps(response, indent=2, default=str)
     except Exception as e:
@@ -620,6 +581,9 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
 def scan_control_tower_tool(region: str = "ap-south-1", is_significant_data_fiduciary: bool = False,
                             is_rbi_regulated: bool = False, is_sebi_regulated: bool = False) -> str:
     """Scan Control Tower configuration and assess governance controls against DPDP and RBI.
+
+    Use this tool when the user says: "scan my Control Tower", "check my guardrails",
+    "assess my landing zone", or "scan my AWS organization governance".
 
     Must be run from the management account. Discovers landing zone config,
     enabled controls per OU, and recommends missing controls based on DPDP/RBI requirements.
@@ -1081,7 +1045,7 @@ def apply_mapping_update(framework: str, proposed_changes_json: str, source_url:
 
 @mcp.tool()
 def format_report(report_path: str = "", report_json: str = "", report_type: str = "auto",
-                  output_format: str = "markdown") -> str:
+                  output_format: str = "markdown", save_to_file: bool = False) -> str:
     """Format a scan report JSON into a human-readable Markdown report.
 
     Accepts either a file path to a previously saved scan report JSON, or
@@ -1092,11 +1056,12 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
         report_json: Inline JSON string of a scan report (alternative to report_path).
         report_type: "account", "control_tower", or "auto" (detect automatically).
         output_format: "markdown" or "docx". Docx generates a production-grade Word report with color coding.
+        save_to_file: If True, save formatted report to the reports/ directory. Default False (return inline).
 
     Returns:
         Formatted Markdown compliance report with executive summary, posture scores,
         per-account breakdown, gap tables, and remediation timeline.
-        For docx format, returns the file path of the generated .docx file.
+        For docx format, returns base64-encoded content (or file path if save_to_file=True).
     """
     from .report_formatter import format_account_scan, format_control_tower_scan
 
@@ -1156,8 +1121,8 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
     # Generate DOCX if requested
     if output_format.lower() == "docx":
         from .docx_formatter import generate_docx
-        report_dir = _get_report_dir()
-        os.makedirs(report_dir, exist_ok=True)
+        import base64
+        import io
 
         # For docx, we pass CT data as second arg if available
         ct_data = None
@@ -1168,14 +1133,30 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
             data_for_docx = data
 
         doc = generate_docx(data_for_docx if data_for_docx else data, ct_data=ct_data)
-        docx_path = os.path.join(report_dir, f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.docx")
-        doc.save(docx_path)
-        return json.dumps({
-            "status": "success",
-            "format": "docx",
-            "file_path": docx_path,
-            "message": f"Production-grade DOCX report saved to {docx_path}",
-        })
+
+        if save_to_file:
+            report_dir = _get_report_dir()
+            os.makedirs(report_dir, exist_ok=True)
+            docx_path = os.path.join(report_dir, f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.docx")
+            doc.save(docx_path)
+            return json.dumps({
+                "status": "success",
+                "format": "docx",
+                "file_path": docx_path,
+                "message": f"Production-grade DOCX report saved to {docx_path}",
+            })
+        else:
+            # Return base64-encoded docx content inline
+            buf = io.BytesIO()
+            doc.save(buf)
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            return json.dumps({
+                "status": "success",
+                "format": "docx",
+                "content_base64": b64,
+                "filename": f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.docx",
+                "message": "DOCX report returned inline as base64. Decode to save as .docx file.",
+            })
 
     # Format as Markdown
     if report_type == "control_tower":
@@ -1183,17 +1164,29 @@ def format_report(report_path: str = "", report_json: str = "", report_type: str
     else:
         markdown = format_account_scan(data)
 
-    # Save the markdown report alongside the JSON (only within reports/ dir)
-    md_path = None
-    if source and source != "inline":
+    # Optionally save to disk
+    if save_to_file:
+        report_dir = _get_report_dir()
+        os.makedirs(report_dir, exist_ok=True)
+        md_path = os.path.join(report_dir, f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.md")
         try:
-            candidate = source.rsplit(".", 1)[0] + ".md"
-            _safe_report_path(candidate)  # validate it's within reports/
-            md_path = candidate
             with open(md_path, "w") as f:
                 f.write(markdown)
-        except (OSError, ValueError):
-            md_path = None
+            return json.dumps({
+                "status": "success",
+                "format": "markdown",
+                "file_path": md_path,
+                "content": markdown,
+                "message": f"Markdown report saved to {md_path}",
+            })
+        except OSError as e:
+            # Still return content even if save fails
+            return json.dumps({
+                "status": "partial",
+                "format": "markdown",
+                "content": markdown,
+                "save_error": f"Could not write file: {_sanitize_error(e)}",
+            })
 
     return markdown
 

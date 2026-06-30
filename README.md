@@ -134,7 +134,7 @@ Then configure your MCP client to use the local install:
 
 | Tool | Purpose |
 |---|---|
-| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Auto-discovers org aggregators; pass `aggregator_name` to override. Supports tag filtering, exception rules, and SEBI entity tiering. |
+| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Auto-discovers org aggregators; pass `aggregator_name` to override. Supports tag filtering, exception rules, SEBI entity tiering, and `save_to_file` to persist results. |
 | `scan_control_tower_tool` | Enumerate enabled guardrails across OUs, recommend missing ones per framework including CERT-In. Per-OU breakdown with domain coverage. |
 | `parse_architecture` | Parse CloudFormation (JSON/YAML), Terraform (HCL), or draw.io (XML) templates. Max 10 MB. |
 | `assess_compliance` | Assess a component list against control domains. Supports tag filtering, exception suppression, and SEBI entity tiering. |
@@ -144,7 +144,29 @@ Then configure your MCP client to use the local install:
 | `check_regulatory_updates` | Staleness check + content hash monitoring + new circular detection. Flags when mappings may be outdated. |
 | `propose_mapping_update` | Feed new regulatory text to the LLM client for analysis. Returns current mappings + structured prompt for proposing changes. |
 | `apply_mapping_update` | Validate and apply LLM-proposed mapping changes to control_mappings.json. Supports review-then-apply workflow. |
-| `format_report` | Convert scan report JSON into Markdown or production-grade DOCX. Pass `output_format="docx"` for a styled Word report with color-coded risk levels, posture scores, cover page, and Control Tower guardrails. |
+| `format_report` | Convert scan report JSON into Markdown or production-grade DOCX. Pass `output_format="docx"` for a styled Word report with color-coded risk levels, posture scores, cover page, and Control Tower guardrails. Use `save_to_file=True` to persist to disk; default returns content inline (base64 for DOCX). |
+
+## Sample prompts
+
+Try these with any MCP-compatible client (Kiro, Claude Desktop, Cursor, etc.):
+
+| What you want to do | Example prompt |
+|---|---|
+| Scan a single AWS account | "Scan my AWS account in ap-south-1 for DPDP and RBI compliance" |
+| Scan your entire AWS organization | "Scan my AWS organization for compliance" |
+| Scan with SEBI framework | "Scan my AWS account as a SEBI MII entity" |
+| Assess Control Tower guardrails | "Scan my Control Tower and check guardrail coverage" |
+| Parse a CloudFormation template | "Parse this CloudFormation template and assess compliance" |
+| Parse a Terraform config | "Assess this Terraform file against DPDP and RBI" |
+| Search regulatory text | "What does DPDP say about breach notification timelines?" |
+| List control domains | "List the SEBI CSCRF control domains" |
+| Generate a formatted report | "Format my last scan as a Word document" |
+| Save report to disk | "Scan my AWS account and save the report to file" |
+| Generate a conformance pack | "Generate an AWS Config conformance pack for RBI" |
+| Check for regulatory updates | "Are there any new RBI or SEBI circulars since last check?" |
+| Filter by tags | "Scan my account but only resources tagged Environment=Production" |
+| Exclude resources | "Scan my account excluding resources tagged Team=Legacy" |
+| Assess as Significant Data Fiduciary | "Scan my AWS account — we are a Significant Data Fiduciary under DPDP" |
 
 ## Key features
 
@@ -205,6 +227,10 @@ The `format_report` tool supports two output formats:
 - Phased remediation timeline
 - Disclaimer page
 
+**Output behavior** (`save_to_file` parameter):
+- `save_to_file=False` (default): Returns content inline. Markdown is returned as text. DOCX is returned as a base64-encoded string in the JSON response — decode and save as `.docx`.
+- `save_to_file=True`: Persists the report to the `reports/` directory and returns the file path.
+
 Both formats include:
 - Executive summary with posture scores
 - Confidence distribution table
@@ -215,7 +241,7 @@ Both formats include:
 - Suppressed gaps with reasons
 - Phased remediation timeline (Immediate / Short-term / Medium-term)
 
-Large scan results (>100 gaps) are automatically saved to `reports/` as JSON, with the MCP response trimmed to priority gaps.
+All gaps are returned inline in the MCP response. For `format_report`, use `save_to_file=True` to persist formatted output to the `reports/` directory. For `scan_aws_account`, pass `save_to_file=True` to persist the full report JSON.
 
 ### Regulatory monitoring
 Three-tier monitoring system:
@@ -429,7 +455,7 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` for local, `streamable-http` for remote |
 | `MCP_HOST` | `127.0.0.1` | Host for HTTP transport |
 | `MCP_PORT` | `8000` | Port for HTTP transport (validated 1-65535) |
-| `REPORT_DIR` | `reports/` | Directory for full scan report JSON output |
+| `REPORT_DIR` | `reports/` | Directory for persisted reports (only used when `save_to_file=True`). Defaults to `cwd/reports` when not set. |
 
 **Disclaimer:** This is a sample tool for educational and assessment purposes.
   It performs read-only operations and does not modify AWS resources.
