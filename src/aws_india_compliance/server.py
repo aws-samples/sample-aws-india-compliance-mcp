@@ -557,9 +557,6 @@ def scan_aws_account(region: str = "ap-south-1", is_significant_data_fiduciary: 
             "remediation_timeline": timeline,
         }
 
-        if (sw2 := _get_staleness_warning()):
-            response["staleness_warning"] = sw2
-
         # Optionally persist full report to disk
         if save_to_file:
             report_dir = _get_report_dir()
@@ -627,9 +624,6 @@ def scan_control_tower_tool(region: str = "ap-south-1", is_significant_data_fidu
         }
 
         response = {"region": region, "executive_summary": summary, **result}
-        sw = _get_staleness_warning()
-        if sw:
-            response["staleness_warning"] = sw
         return json.dumps(response, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Control Tower scan failed: {_sanitize_error(e)}. Must run from management account.", "region": region})
@@ -638,6 +632,10 @@ def scan_control_tower_tool(region: str = "ap-south-1", is_significant_data_fidu
 @mcp.tool()
 def check_regulatory_updates() -> str:
     """Check for regulatory updates since the last control mapping verification.
+
+    This is a maintainer tool for verifying that bundled control mappings are
+    current. It is run automatically via GitHub Actions on a 25-day schedule.
+    End users do not need to call this — mappings are updated via new PyPI releases.
 
     Performs three levels of checking:
     1. Staleness: flags frameworks where last_verified exceeds the threshold (default 30 days).

@@ -1,12 +1,12 @@
 {
   "manifest_version": "1.2.0",
-  "last_updated": "2026-04-30",
+  "last_updated": "2026-06-30",
   "frameworks": {
     "dpdp": {
       "name": "Digital Personal Data Protection Act 2023 + Rules 2025",
       "version": "Act 2023 + Rules notified November 14, 2025",
       "source_url": "https://dpdpact.in",
-      "last_verified": "2026-04-30",
+      "last_verified": "2026-06-30",
       "domains": {
         "1": {
           "name": "Lawful Processing and Consent Management",
@@ -103,7 +103,7 @@
       "name": "RBI Master Direction on IT Governance, Risk, Controls and Assurance Practices",
       "version": "DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023)",
       "source_url": "https://rbi.org.in/Scripts/BS_ViewMasterDirections.aspx",
-      "last_verified": "2026-04-29",
+      "last_verified": "2026-06-30",
       "domains": {
         "1": {
           "name": "IT Governance and Oversight",
@@ -167,7 +167,7 @@
       "name": "SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) / Cloud Framework",
       "version": "Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024)",
       "source_url": "https://www.sebi.gov.in/legal/circulars/aug-2024/cybersecurity-and-cyber-resilience-framework-cscrf-_85964.html",
-      "last_verified": "2026-04-29",
+      "last_verified": "2026-06-30",
       "domains": {
         "1": {
           "name": "Cyber Governance",
@@ -229,7 +229,7 @@
       "name": "CERT-In Directions on Information Security Practices 2022",
       "version": "Directions dated April 28, 2022",
       "source_url": "https://www.cert-in.org.in",
-      "last_verified": "2026-05-02",
+      "last_verified": "2026-06-30",
       "domains": {
         "1": {
           "name": "Incident Reporting Readiness",
