@@ -20,7 +20,21 @@ Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 No installation required. Add to your MCP config and `uvx` handles the rest:
 
-**Kiro** (`.kiro/settings/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "aws-india-compliance": {
+      "command": "uvx",
+      "args": ["aws-india-compliance@latest"]
+    }
+  }
+}
+```
+
+This works if your default AWS credentials are already configured (via `~/.aws/credentials`, environment variables, or an active SSO session).
+
+If you use a named profile, pass it explicitly:
+
 ```json
 {
   "mcpServers": {
@@ -35,35 +49,10 @@ No installation required. Add to your MCP config and `uvx` handles the rest:
 }
 ```
 
-**Claude Desktop** (`claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "aws-india-compliance": {
-      "command": "uvx",
-      "args": ["aws-india-compliance@latest"],
-      "env": {
-        "AWS_PROFILE": "my-sso-profile"
-      }
-    }
-  }
-}
-```
-
-**Claude Code** (`~/.claude/mcp.json`):
-```json
-{
-  "mcpServers": {
-    "aws-india-compliance": {
-      "command": "uvx",
-      "args": ["aws-india-compliance@latest"],
-      "env": {
-        "AWS_PROFILE": "my-sso-profile"
-      }
-    }
-  }
-}
-```
+Add the config to your MCP client's settings file:
+- **Kiro**: `.kiro/settings/mcp.json`
+- **Claude Desktop**: `claude_desktop_config.json`
+- **Claude Code**: `~/.claude/mcp.json`
 
 > Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) installed. On macOS: `brew install uv`
 
