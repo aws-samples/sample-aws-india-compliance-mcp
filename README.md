@@ -1,5 +1,12 @@
 # AWS India Compliance MCP Server
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![AWS](https://img.shields.io/badge/AWS-Samples-orange)](https://github.com/aws-samples)
+[![MCP](https://img.shields.io/badge/MCP-Server-green)](https://modelcontextprotocol.io)
+[![Python](https://img.shields.io/badge/Python-3.10+-yellow)](https://python.org)
+[![PyPI](https://img.shields.io/pypi/v/aws-india-compliance)](https://pypi.org/project/aws-india-compliance/)
+[![Tests](https://img.shields.io/badge/tests-28%20passing-brightgreen)]()
+
 An MCP server that assesses AWS infrastructure against four Indian regulatory frameworks:
 
 - **DPDP Act 2023** (Digital Personal Data Protection) + Rules 2025
