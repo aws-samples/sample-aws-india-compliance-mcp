@@ -282,7 +282,7 @@ def scan_aws_account(
                 os.makedirs(report_dir, exist_ok=True)
                 full_response = {**response, "gaps": all_gaps}
                 report_file = os.path.join(report_dir, f"scan_report_{region}_{scan_start.strftime('%Y%m%d_%H%M%S')}.json")
-                with open(report_file, "w") as f:
+                with open(report_file, "w", encoding="utf-8") as f:
                     json.dump(full_response, f, indent=2, default=str)
                 response["saved_to_file"] = report_file
             except OSError as e:
@@ -551,7 +551,7 @@ def format_report(
     elif report_path:
         try:
             safe_path = _safe_report_path(report_path)
-            with open(safe_path, "r") as f:
+            with open(safe_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except ValueError as e:
             return json.dumps({"error": str(e)})
@@ -612,7 +612,7 @@ def format_report(
         os.makedirs(report_dir, exist_ok=True)
         md_path = os.path.join(report_dir, f"compliance_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.md")
         try:
-            with open(md_path, "w") as f:
+            with open(md_path, "w", encoding="utf-8") as f:
                 f.write(markdown)
             return json.dumps({"status": "success", "format": "markdown", "file_path": md_path})
         except OSError as e:

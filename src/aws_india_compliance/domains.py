@@ -77,14 +77,14 @@ def get_manifest_path() -> str:
 def load_manifest() -> dict:
     """Load and return the control mappings manifest."""
     import json
-    with open(get_manifest_path(), "r") as f:
+    with open(get_manifest_path(), "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def save_manifest(manifest: dict) -> None:
     """Write the control mappings manifest back to disk."""
     import json
-    with open(get_manifest_path(), "w") as f:
+    with open(get_manifest_path(), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
         f.write("\n")
 

@@ -188,7 +188,7 @@ def main() -> None:
             sys.exit(2)
         framework = sys.argv[2]
         text_file = sys.argv[3]
-        with open(text_file, "r") as f:
+        with open(text_file, "r", encoding="utf-8") as f:
             text = f.read()
         source_url = sys.argv[4] if len(sys.argv) > 4 else ""
         circular_date = sys.argv[5] if len(sys.argv) > 5 else ""
@@ -199,7 +199,7 @@ def main() -> None:
             sys.exit(2)
         framework = sys.argv[2]
         changes_file = sys.argv[3]
-        with open(changes_file, "r") as f:
+        with open(changes_file, "r", encoding="utf-8") as f:
             changes_json = f.read()
         source_url = sys.argv[4] if len(sys.argv) > 4 else ""
         circular_date = sys.argv[5] if len(sys.argv) > 5 else ""
