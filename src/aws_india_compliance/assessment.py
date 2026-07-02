@@ -569,7 +569,7 @@ def assess(
         else:
             _gap("architecture", "certin", 8, "medium",
                  "No Macie for data discovery/DLP and S3 public access gaps exist",
-                 "Enable Amazon Macie for sensitive data discovery and ensure S3 Block Public Access",
+                 "Enable Amazon Macie for sensitive data discovery and enable S3 Block Public Access",
                  "CERT-In Directions 2022 - Data Breach/Leaks",
                  confidence="medium",
                  evidence={"macie": has_macie, "kms": has_kms})
