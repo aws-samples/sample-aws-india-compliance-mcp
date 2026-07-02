@@ -130,21 +130,19 @@ Then configure your MCP client to use the local install:
 - IAM credentials with read-only access (see IAM policy below)
 - For org-wide scans: a Config Aggregator (auto-discovered, or pass name explicitly)
 
-## Tools (11)
+## Tools (7)
+
+The server follows a **compact summary + drill-down** pattern: `scan_aws_account` returns a compact summary (~2-3K tokens), and `get_compliance_gaps` provides paginated access to full gap details. Maintainer tools (regulatory updates, mapping management) are CLI-only and not exposed via MCP.
 
 | Tool | Purpose |
 |---|---|
-| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Auto-discovers org aggregators; pass `aggregator_name` to override. Supports tag filtering, exception rules, SEBI entity tiering, and `save_to_file` to persist results. |
-| `scan_control_tower_tool` | Enumerate enabled guardrails across OUs, recommend missing ones per framework including CERT-In. Per-OU breakdown with domain coverage. |
-| `parse_architecture` | Parse CloudFormation (JSON/YAML), Terraform (HCL), or draw.io (XML) templates. Max 10 MB. |
-| `assess_compliance` | Assess a component list against control domains. Supports tag filtering, exception suppression, and SEBI entity tiering. |
-| `generate_report` | Full report with posture scores, gap list, and phased remediation timeline. |
+| `scan_aws_account` | Discover resources via AWS Config, assess against all frameworks. Returns a compact summary with posture scores, gap counts, and top critical findings. Use `get_compliance_gaps` to drill into details. Supports tag filtering, exception rules, SEBI entity tiering, and `save_to_file` to persist results. |
+| `scan_control_tower` | Enumerate enabled guardrails across OUs, recommend missing ones per framework including CERT-In. Per-OU breakdown with domain coverage. |
+| `get_compliance_gaps` | Drill into compliance gaps from the most recent scan. Filter by framework, risk level, or domain. Paginated (default 20 per page, max 50). |
 | `search_regulatory_text` | Search regulatory text from government sources. Falls back to bundled mappings when sites are unreachable. |
 | `list_control_domains` | List domains for a framework: `dpdp` (10), `rbi` (7), `sebi` (6), or `certin` (4). |
-| `check_regulatory_updates` | Staleness check + content hash monitoring + new circular detection. Flags when mappings may be outdated. |
-| `propose_mapping_update` | Feed new regulatory text to the LLM client for analysis. Returns current mappings + structured prompt for proposing changes. |
-| `apply_mapping_update` | Validate and apply LLM-proposed mapping changes to control_mappings.json. Supports review-then-apply workflow. |
-| `format_report` | Convert scan report JSON into Markdown or production-grade DOCX. Pass `output_format="docx"` for a styled Word report with color-coded risk levels, posture scores, cover page, and Control Tower guardrails. Use `save_to_file=True` to persist to disk; default returns content inline (base64 for DOCX). |
+| `generate_conformance_pack` | Generate a deployable AWS Config conformance pack YAML for a compliance framework. |
+| `format_report` | Generate a production-grade DOCX (default) or Markdown report from scan results. Uses cached scan data if no input provided. Defaults to `save_to_file=True`. |
 
 ## Sample prompts
 
@@ -155,15 +153,13 @@ Try these with any MCP-compatible client (Kiro, Claude Desktop, Cursor, etc.):
 | Scan a single AWS account | "Scan my AWS account in ap-south-1 for DPDP and RBI compliance" |
 | Scan your entire AWS organization | "Scan my AWS organization for compliance" |
 | Scan with SEBI framework | "Scan my AWS account as a SEBI MII entity" |
+| Drill into scan gaps | "Show me all critical DPDP gaps" or "Show RBI gaps page 2" |
 | Assess Control Tower guardrails | "Scan my Control Tower and check guardrail coverage" |
-| Parse a CloudFormation template | "Parse this CloudFormation template and assess compliance" |
-| Parse a Terraform config | "Assess this Terraform file against DPDP and RBI" |
 | Search regulatory text | "What does DPDP say about breach notification timelines?" |
 | List control domains | "List the SEBI CSCRF control domains" |
 | Generate a formatted report | "Format my last scan as a Word document" |
 | Save report to disk | "Scan my AWS account and save the report to file" |
 | Generate a conformance pack | "Generate an AWS Config conformance pack for RBI" |
-| Check for regulatory updates | "Are there any new RBI or SEBI circulars since last check?" |
 | Filter by tags | "Scan my account but only resources tagged Environment=Production" |
 | Exclude resources | "Scan my account excluding resources tagged Team=Legacy" |
 | Assess as Significant Data Fiduciary | "Scan my AWS account — we are a Significant Data Fiduciary under DPDP" |
@@ -212,44 +208,34 @@ Per-domain resource compliance percentages (e.g., "dpdp:6 — 482 checked, 320 p
 - `DataClassification` tag value included in gap description when present
 
 ### Report formatting
-The `format_report` tool supports two output formats:
+The `format_report` tool generates production-grade compliance reports:
 
-**Markdown** (default): Structured text report for chat display and quick review.
-
-**DOCX** (`output_format="docx"`): Production-grade Word document suitable for sharing with customers and auditors. Features:
+**DOCX** (default): Word document suitable for sharing with auditors. Features:
 - Professional cover page with scan metadata and confidentiality notice
 - Color-coded posture scores (green/orange/red based on thresholds)
 - Dark blue styled table headers with alternating row shading
 - Risk-level cell coloring (red for critical, orange for high, yellow for medium)
 - Confidence-level cell coloring (green for high, orange for medium, red for low)
-- Landscape orientation with full-width tables (no truncation of resource names)
+- Landscape orientation with full-width tables
 - Control Tower section with guardrails, per-OU breakdown, and recommendations
 - Phased remediation timeline
 - Disclaimer page
 
-**Output behavior** (`save_to_file` parameter):
-- `save_to_file=False` (default): Returns content inline. Markdown is returned as text. DOCX is returned as a base64-encoded string in the JSON response — decode and save as `.docx`.
-- `save_to_file=True`: Persists the report to the `reports/` directory and returns the file path.
+**Markdown** (`output_format="markdown"`): Structured text report for chat display and quick review.
 
-Both formats include:
-- Executive summary with posture scores
-- Confidence distribution table
-- Gap summary by framework and risk level
-- Resource-level compliance pass rates
-- Per-account breakdown
-- Critical and high-risk gap tables with evidence
-- Suppressed gaps with reasons
-- Phased remediation timeline (Immediate / Short-term / Medium-term)
+**Output behavior:**
+- `save_to_file=True` (default): Persists the report to the `reports/` directory and returns the file path.
+- `save_to_file=False`: Returns content inline. Markdown as text, DOCX as base64-encoded string.
 
-All gaps are returned inline in the MCP response. For `format_report`, use `save_to_file=True` to persist formatted output to the `reports/` directory. For `scan_aws_account`, pass `save_to_file=True` to persist the full report JSON.
+If no `report_json` or `report_path` is provided, `format_report` automatically uses the cached results from the most recent `scan_aws_account` call.
 
-### Regulatory monitoring
-Three-tier monitoring system:
+### Regulatory monitoring (CLI-only)
+Regulatory monitoring tools are not exposed via MCP — they are used by maintainers via CLI or GitHub Actions:
 1. **Staleness** — Flags frameworks where `last_verified` exceeds threshold (default 30 days)
 2. **Content hashing** — Fetches regulatory source pages and compares SHA-256 hashes against baselines
 3. **New circular detection** — Scans RBI and SEBI circular listing pages for publications matching compliance keywords
 
-LLM-assisted mapping updates via `propose_mapping_update` → `apply_mapping_update` workflow.
+Run `scripts/check_regulatory_updates.py` or use the GitHub Actions workflow for scheduled checks.
 
 ## How scanning works
 
@@ -257,7 +243,10 @@ LLM-assisted mapping updates via `propose_mapping_update` → `apply_mapping_upd
 2. The scanner extracts compliance-relevant properties per resource type (encryption, public access, logging, retention, key rotation, TLS enforcement, VPC flow logs, security group rules, secrets rotation, backup plans, etc.).
 3. Fallback API checks cover Security Hub, GuardDuty, CloudTrail, WAF, AWS Backup, and Amazon Inspector.
 4. The assessment engine evaluates each resource against applicable DPDP, RBI, SEBI, and CERT-In control domains.
-5. Results include risk-rated gaps with confidence levels, evidence, specific remediation steps, and regulatory section references.
+5. `scan_aws_account` returns a **compact summary** (~2-3K tokens) with posture scores, gap counts, top critical findings, and a remediation timeline. Full gap details are cached in memory.
+6. Use `get_compliance_gaps` to **drill down** — filter by framework, risk level, or domain with pagination.
+
+This pattern keeps initial responses fast and token-efficient while allowing detailed exploration on demand.
 
 For org-wide scans, the scanner auto-discovers organization-level Config Aggregators via `DescribeConfigurationAggregators`. If one is found, it's used automatically — no need to pass a name. You can still pass an explicit `aggregator_name` to override auto-discovery (e.g., `aws-controltower-ConfigAggregatorForOrganizations`). The aggregator must be configured in the management or delegated admin account.
 
@@ -306,7 +295,7 @@ RBI-regulated scans additionally flag resources deployed outside ap-south-1 and 
 | SEBI CSCRF | Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024) | sebi.gov.in |
 | CERT-In Directions | Directions dated April 28, 2022 | cert-in.org.in |
 
-Control mappings are maintained in `control_mappings.json` with `manifest_version`, `last_verified` dates, and source URLs per framework. Run `check_regulatory_updates` to see when mappings were last verified and where to check for new publications.
+Control mappings are maintained in `control_mappings.json` with `manifest_version`, `last_verified` dates, and source URLs per framework. Mappings are updated via new PyPI releases when regulatory changes occur.
 
 ## Security
 
@@ -323,7 +312,7 @@ This server performs read-only operations. It does not modify AWS resources.
 
 **Credentials:** Use IAM roles or SSO profiles. Do not hardcode credentials in config files or source code.
 
-**Data handling:** No persistence, no telemetry, no caching by default. Scan results are held in memory and discarded on exit. Large scan reports are saved to `reports/` (gitignored). Logs (stderr, INFO level) contain resource ARNs and type identifiers but not credential material or data values.
+**Data handling:** No persistence, no telemetry. Scan results are cached in memory for drill-down via `get_compliance_gaps` and discarded on process exit. Large scan reports are saved to `reports/` (gitignored) only when `save_to_file=True`. Logs (stderr, INFO level) contain resource ARNs and type identifiers but not credential material or data values.
 
 **XML parsing:** draw.io templates are parsed with `defusedxml`, which blocks XXE, DTD processing, and entity expansion.
 
@@ -415,7 +404,8 @@ Framework-specific parameter overrides are applied automatically (e.g., CERT-In 
 
 ```
 src/aws_india_compliance/
-  server.py              # MCP tool registration, entry point, input validation
+  server.py              # MCP server — 7 user-facing tools (compact summary + drill-down)
+  admin.py               # CLI-only maintainer tools (regulatory update workflow)
   assessment.py          # Compliance assessment engine (confidence scoring, resource tracking, exceptions)
   aws_scanner.py         # AWS Config query + fallback API checks (Backup, Inspector)
   control_tower.py       # Control Tower scanner + per-OU guardrail mapping
@@ -426,13 +416,10 @@ src/aws_india_compliance/
   docx_formatter.py      # DOCX report generator with color coding
   conformance_pack.py    # AWS Config conformance pack YAML generator
   control_mappings.json  # Versioned control-to-AWS mapping manifest (DPDP, RBI, SEBI, CERT-In)
+scripts/
+  check_regulatory_updates.py  # CI script for GitHub Actions workflow
 conformance-packs/       # Pre-built conformance pack templates
-tests/
-  test_assessment.py     # Assessment engine tests
-  test_aws_scanner.py    # Scanner tests (mocked boto3)
-  test_control_tower.py  # Control Tower assessment tests
-  test_domains.py        # Domain definition + manifest tests
-  test_parsers.py        # Parser tests
+tests/                   # 28 tests covering all modules
 reports/                 # Scan report output (gitignored)
 ```
 
@@ -451,7 +438,7 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | `AWS_PROFILE` | — | AWS SSO profile name |
 | `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 | `REGULATORY_CACHE_TTL` | `0` | Seconds to cache regulatory site responses. 0 = no caching. |
-| `STALENESS_THRESHOLD_DAYS` | `30` | Days after last_verified before staleness warnings appear in scan results. |
+| `STALENESS_THRESHOLD_DAYS` | `30` | Days after last_verified before staleness warnings appear (CLI monitoring only). |
 | `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` for local, `streamable-http` for remote |
 | `MCP_HOST` | `127.0.0.1` | Host for HTTP transport |
 | `MCP_PORT` | `8000` | Port for HTTP transport (validated 1-65535) |
