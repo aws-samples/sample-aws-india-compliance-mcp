@@ -621,6 +621,141 @@ def format_report(
     return markdown
 
 
+# ---- Feedback Tool ----
+
+_FEEDBACK_REPO = "aws-samples/sample-aws-india-compliance-mcp"
+_FEEDBACK_ISSUE_NUMBER = 6  # Rolling feedback thread issue
+_FEEDBACK_CATEGORIES = ("bug", "feature_request", "documentation", "missing_capability", "other")
+
+
+def _get_feedback_log_path() -> str:
+    """Return path to local feedback log file."""
+    feedback_dir = os.path.join(os.path.expanduser("~"), ".aws-india-compliance")
+    os.makedirs(feedback_dir, exist_ok=True)
+    return os.path.join(feedback_dir, "feedback.log")
+
+
+def _try_gh_comment(body: str) -> tuple[bool, str]:
+    """Attempt to post feedback as a comment on the rolling GitHub issue via gh CLI.
+
+    Returns (success, message).
+    """
+    import shutil
+    import subprocess
+
+    gh_path = shutil.which("gh")
+    if not gh_path:
+        return False, "gh CLI not found"
+
+    try:
+        result = subprocess.run(
+            [gh_path, "issue", "comment", str(_FEEDBACK_ISSUE_NUMBER),
+             "--repo", _FEEDBACK_REPO, "--body", body],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0:
+            return True, "Comment posted to GitHub issue"
+        return False, result.stderr.strip()[:200] if result.stderr else "gh command failed"
+    except subprocess.TimeoutExpired:
+        return False, "gh command timed out"
+    except Exception as e:
+        return False, str(e)[:200]
+
+
+@mcp.tool()
+def submit_feedback(
+    message: str,
+    category: str = "other",
+    tool_name: str = "",
+    severity: str = "medium",
+) -> str:
+    """Submit feedback about the aws-india-compliance MCP server.
+
+    Use this when you encounter an unexpected error, a missing capability,
+    confusing output, or have a suggestion for improvement. Feedback is
+    saved locally and optionally posted to GitHub if gh CLI is authenticated.
+
+    Args:
+        message: Description of the feedback — what you tried, what happened,
+                 what you expected. Max 2000 characters.
+        category: One of "bug", "feature_request", "documentation",
+                  "missing_capability", "other". Default "other".
+        tool_name: Which tool the feedback is about (e.g., "scan_aws_account").
+        severity: "high" (blocked), "medium" (workaround found), "low" (minor). Default "medium".
+
+    Returns:
+        Confirmation with feedback ID and submission status.
+    """
+    # Validate inputs
+    message = message.strip()[:2000]
+    if not message:
+        return json.dumps({"error": "Message is required."})
+
+    if category not in _FEEDBACK_CATEGORIES:
+        category = "other"
+
+    if severity not in ("high", "medium", "low"):
+        severity = "medium"
+
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    feedback_id = hashlib.sha256(f"{timestamp}{message}".encode()).hexdigest()[:8]
+
+    entry = {
+        "id": feedback_id,
+        "timestamp": timestamp,
+        "tool_version": __version__,
+        "category": category,
+        "severity": severity,
+        "tool_name": tool_name or None,
+        "message": message,
+    }
+
+    # Always save locally
+    log_path = _get_feedback_log_path()
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError:
+        log_path = None
+
+    # Try posting to GitHub via gh CLI
+    gh_body = (
+        f"**Feedback** (`{feedback_id}`)\n\n"
+        f"| Field | Value |\n|---|---|\n"
+        f"| Category | {category} |\n"
+        f"| Severity | {severity} |\n"
+        f"| Tool | {tool_name or 'general'} |\n"
+        f"| Version | {__version__} |\n"
+        f"| Time | {timestamp} |\n\n"
+        f"**Message:**\n\n{message}"
+    )
+
+    gh_success, gh_msg = _try_gh_comment(gh_body)
+
+    response: dict[str, Any] = {
+        "status": "received",
+        "feedback_id": feedback_id,
+        "saved_locally": log_path is not None,
+        "posted_to_github": gh_success,
+    }
+
+    if gh_success:
+        response["message"] = (
+            f"Feedback submitted to GitHub (issue #{_FEEDBACK_ISSUE_NUMBER}). Thank you!"
+        )
+    else:
+        response["message"] = (
+            "Feedback saved locally. To share with maintainers, post it at: "
+            f"https://github.com/{_FEEDBACK_REPO}/issues/{_FEEDBACK_ISSUE_NUMBER}"
+        )
+        response["github_hint"] = gh_msg
+
+    if log_path:
+        response["local_log"] = log_path
+
+    return json.dumps(response, indent=2)
+
+
 # ---- Entry point ----
 
 def main() -> None:
@@ -628,7 +763,7 @@ def main() -> None:
     log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
     logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format="%(levelname)s %(name)s: %(message)s")
 
-    _logger.info("aws-india-compliance v%s — 7 tools exposed", __version__)
+    _logger.info("aws-india-compliance v%s — 8 tools exposed", __version__)
 
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     mcp.run(transport=transport)

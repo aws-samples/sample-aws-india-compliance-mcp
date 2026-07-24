@@ -132,7 +132,7 @@ Then configure your MCP client to use the local install:
 - IAM credentials with read-only access (see IAM policy below)
 - For org-wide scans: a Config Aggregator (auto-discovered, or pass name explicitly)
 
-## Tools (7)
+## Tools (8)
 
 The server follows a **compact summary + drill-down** pattern: `scan_aws_account` returns a compact summary (~2-3K tokens), and `get_compliance_gaps` provides paginated access to full gap details. Maintainer tools (regulatory updates, mapping management) are CLI-only and not exposed via MCP.
 
@@ -145,6 +145,7 @@ The server follows a **compact summary + drill-down** pattern: `scan_aws_account
 | `list_control_domains` | List domains for a framework: `dpdp` (10), `rbi` (7), `sebi` (6), or `certin` (4). |
 | `generate_conformance_pack` | Generate a deployable AWS Config conformance pack YAML for a compliance framework. |
 | `format_report` | Generate a production-grade DOCX (default) or Markdown report from scan results. Uses cached scan data if no input provided. Defaults to `save_to_file=True`. |
+| `submit_feedback` | Submit feedback about the tool (bugs, missing capabilities, suggestions). Saved locally and posted to GitHub if `gh` CLI is authenticated. |
 
 ## Sample prompts
 
@@ -165,6 +166,7 @@ Try these with any MCP-compatible client (Kiro, Claude Desktop, Cursor, etc.):
 | Filter by tags | "Scan my account but only resources tagged Environment=Production" |
 | Exclude resources | "Scan my account excluding resources tagged Team=Legacy" |
 | Assess as Significant Data Fiduciary | "Scan my AWS account — we are a Significant Data Fiduciary under DPDP" |
+| Submit feedback | "Submit feedback: the scan doesn't check Neptune clusters for encryption" |
 
 ## Key features
 
@@ -314,7 +316,7 @@ This server performs read-only operations. It does not modify AWS resources.
 
 **Credentials:** Use IAM roles or SSO profiles. Do not hardcode credentials in config files or source code.
 
-**Data handling:** No persistence, no telemetry. Scan results are cached in memory for drill-down via `get_compliance_gaps` and discarded on process exit. Large scan reports are saved to `reports/` (gitignored) only when `save_to_file=True`. Logs (stderr, INFO level) contain resource ARNs and type identifiers but not credential material or data values.
+**Data handling:** Scan results are cached in memory for drill-down via `get_compliance_gaps` and discarded on process exit. Large scan reports are saved to `reports/` (gitignored) only when `save_to_file=True`. The `submit_feedback` tool appends entries to `~/.aws-india-compliance/feedback.log` (local only) and optionally posts to a public GitHub issue via `gh` CLI if authenticated. No telemetry is collected. Logs (stderr, INFO level) contain resource ARNs and type identifiers but not credential material or data values.
 
 **XML parsing:** draw.io templates are parsed with `defusedxml`, which blocks XXE, DTD processing, and entity expansion.
 
@@ -487,7 +489,7 @@ This removes the Config rules created by the pack. No other AWS resources are cr
 
 ```
 src/aws_india_compliance/
-  server.py              # MCP server — 7 user-facing tools (compact summary + drill-down)
+  server.py              # MCP server — 8 user-facing tools (compact summary + drill-down + feedback)
   admin.py               # CLI-only maintainer tools (regulatory update workflow)
   assessment.py          # Compliance assessment engine (confidence scoring, resource tracking, exceptions)
   aws_scanner.py         # AWS Config query + fallback API checks (Backup, Inspector)
