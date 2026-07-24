@@ -63,7 +63,7 @@ Add the config to your MCP client's settings file:
 - **Claude Desktop**: `claude_desktop_config.json`
 - **Claude Code**: `~/.claude/mcp.json`
 
-> Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) installed. On macOS: `brew install uv`
+**Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) installed. On macOS: `brew install uv`**
 
 ### 2. Configure AWS credentials
 
