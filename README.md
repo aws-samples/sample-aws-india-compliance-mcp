@@ -7,6 +7,8 @@
 [![PyPI](https://img.shields.io/pypi/v/aws-india-compliance)](https://pypi.org/project/aws-india-compliance/)
 [![Tests](https://img.shields.io/badge/tests-28%20passing-brightgreen)]()
 
+**Full documentation: https://aws-samples.github.io/sample-aws-india-compliance-mcp/**
+
 An MCP server that assesses AWS infrastructure against Indian regulatory compliance frameworks. Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 **Supported frameworks:**
