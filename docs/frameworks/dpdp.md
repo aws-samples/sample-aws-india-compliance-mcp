@@ -4,8 +4,8 @@
 |----------|-------|
 | **ID** | `dpdp` |
 | **Version** | Act 2023 + Rules notified November 14, 2025 |
-| **Source** | [https://dpdpact.in](https://dpdpact.in) |
-| **Last Verified** | 2026-06-30 |
+| **Source** | [https://www.meity.gov.in/data-protection-framework](https://www.meity.gov.in/data-protection-framework) |
+| **Last Verified** | 2026-07-30 |
 | **Activation** | always |
 | **Domains** | 10 |
 | **Declarative Checks** | 16 |
@@ -213,7 +213,7 @@ This framework has **16 declarative checks**
 ## Regulatory Monitoring
 
 **Search Sources:**
-- https://dpdpact.in
+- https://www.meity.gov.in/data-protection-framework
 
 **Monitoring Keywords:**
 `data protection, personal data, dpdp, privacy, consent, data principal, data fiduciary, breach notification`
