@@ -1,0 +1,200 @@
+# CERT-In Directions on Information Security Practices 2022
+# Source: https://www.cert-in.org.in
+# Last updated: 2026-06-30
+
+id: certin
+name: "CERT-In Directions on Information Security Practices 2022"
+version: "Directions dated April 28, 2022"
+source_url: "https://www.cert-in.org.in"
+last_verified: "2026-06-30"
+
+source_domains:
+  - "cert-in.org.in"
+
+activation: always
+activation_param: ""
+
+search_sources: []
+
+circular_sources:
+  - "https://www.cert-in.org.in"
+
+keywords:
+  - "cyber incident"
+  - "incident reporting"
+  - "log retention"
+  - "ntp synchronization"
+  - "data breach"
+  - "malware"
+  - "ransomware"
+  - "ddos"
+
+penalty_default: "As per IT Act Section 70B penalties"
+
+config_rule_params:
+  CW_LOGGROUP_RETENTION_PERIOD_CHECK:
+    MinRetentionTime: "180"
+
+domains:
+  1:
+    name: "Incident Reporting Readiness"
+    section: "Direction 1-3"
+    type: technical
+    aws_controls:
+      - "GuardDuty"
+      - "EventBridge"
+      - "SNS"
+      - "Lambda"
+      - "Security Hub"
+    config_rules:
+      - "guardduty-enabled-centralized"
+      - "securityhub-enabled"
+    guardrails:
+      - "AWS-GR_CLOUDTRAIL_ENABLED"
+
+  2:
+    name: "Log Retention (180 days)"
+    section: "Direction 4"
+    type: technical
+    aws_controls:
+      - "CloudWatch Logs"
+      - "S3 access logging"
+      - "CloudTrail"
+    config_rules:
+      - "cw-loggroup-retention-period-check"
+      - "cloudtrail-enabled"
+    guardrails:
+      - "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"
+
+  3:
+    name: "NTP Synchronization"
+    section: "Direction 5"
+    type: technical
+    aws_controls:
+      - "Amazon Time Sync Service (automatic on EC2/ECS/EKS)"
+    config_rules: []
+    guardrails: []
+
+  4:
+    name: "Reportable Incident Awareness"
+    section: "Direction 6"
+    type: technical
+    aws_controls:
+      - "Security Hub"
+      - "GuardDuty"
+      - "Inspector"
+      - "Detective"
+    config_rules:
+      - "securityhub-enabled"
+      - "guardduty-enabled-centralized"
+    guardrails: []
+
+  5:
+    name: "DDoS and Bot Protection"
+    section: "CERT-In Directions 2022 - DDoS/Bot Attacks"
+    type: technical
+    aws_controls:
+      - "AWS Shield Advanced"
+      - "AWS WAF Bot Control"
+      - "CloudFront"
+    config_rules:
+      - "shield-advanced-enabled-autorenew"
+    guardrails: []
+
+  6:
+    name: "Network Security and DNS Protection"
+    section: "CERT-In Directions 2022 - Network Compromise"
+    type: technical
+    aws_controls:
+      - "AWS Network Firewall"
+      - "Route53 DNSSEC"
+      - "VPC Flow Logs"
+    config_rules:
+      - "vpc-flow-logs-enabled"
+      - "route53-dnssec-enabled"
+    guardrails: []
+
+  7:
+    name: "Endpoint and Malware Protection"
+    section: "CERT-In Directions 2022 - Malware/Ransomware"
+    type: technical
+    aws_controls:
+      - "GuardDuty Malware Protection"
+      - "Amazon Inspector"
+      - "SSM Patch Manager"
+    config_rules:
+      - "guardduty-malware-protection-enabled"
+    guardrails: []
+
+  8:
+    name: "Data Leakage Prevention"
+    section: "CERT-In Directions 2022 - Data Breach/Leaks"
+    type: technical
+    aws_controls:
+      - "Macie"
+      - "S3 Block Public Access"
+      - "KMS Encryption"
+      - "CloudTrail Data Events"
+    config_rules:
+      - "s3-bucket-public-read-prohibited"
+      - "s3-bucket-public-write-prohibited"
+    guardrails:
+      - "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED"
+      - "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED"
+
+# Declarative assessment checks for CERT-In Directions.
+
+checks:
+  # Resource-level checks
+  - match: "Logs::LogGroup"
+    property: "retention_days"
+    expect_min: 180
+    domain: 2
+    risk: high
+    gap: "CloudWatch log group retention is less than 180 days"
+    remediation: "Set retention to at least 180 days per CERT-In Direction 4"
+    reference: "CERT-In Direction 4"
+    confidence: high
+
+  - match: "CloudTrail::Trail"
+    property: "log_file_validation"
+    expect: true
+    domain: 1
+    risk: high
+    gap: "CloudTrail log file validation is disabled"
+    remediation: "Enable log file validation for incident investigation integrity"
+    reference: "CERT-In Direction 1-3"
+    confidence: high
+
+  # Architecture-level checks
+  - match_any: "guardduty"
+    domain: 1
+    risk: critical
+    gap: "No GuardDuty for incident detection and reporting"
+    remediation: "Enable Amazon GuardDuty"
+    reference: "CERT-In Direction 1-3"
+    confidence: high
+
+  - match_any: "securityhub"
+    domain: 4
+    risk: high
+    gap: "No Security Hub for reportable incident awareness"
+    remediation: "Enable AWS Security Hub"
+    reference: "CERT-In Direction 6"
+    confidence: high
+
+  - match_any: "shield"
+    domain: 5
+    risk: high
+    gap: "No Shield Advanced for DDoS protection"
+    remediation: "Enable AWS Shield Advanced"
+    reference: "CERT-In Directions 2022 - DDoS/Bot Attacks"
+    confidence: high
+
+  - match_any: "networkfirewall"
+    domain: 6
+    risk: high
+    gap: "No Network Firewall for network security"
+    remediation: "Deploy AWS Network Firewall"
+    reference: "CERT-In Directions 2022 - Network Compromise"
+    confidence: high

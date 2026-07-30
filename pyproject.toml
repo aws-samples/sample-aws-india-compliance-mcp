@@ -1,6 +1,6 @@
 [project]
 name = "aws-india-compliance"
-version = "0.2.3"
+version = "0.3.0"
 description = "MCP server to assess AWS infrastructure against India's DPDP Act 2023, RBI Master Direction, and SEBI CSCRF"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -39,6 +39,7 @@ dependencies = [
     "boto3>=1.26.0",
     "defusedxml>=0.7.1",
     "python-docx>=1.0.0",
+    "pyyaml>=6.0",
 ]
 
 [project.urls]

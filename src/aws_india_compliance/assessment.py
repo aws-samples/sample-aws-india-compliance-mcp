@@ -4,6 +4,10 @@ Evaluates infrastructure components against DPDP Act, RBI Master
 Direction, SEBI CSCRF, and CERT-In Directions control domains.
 Checks resource-level configurations including encryption, public
 access, logging, retention, TLS enforcement, and more.
+
+Also provides a generic declarative rule evaluator that processes
+checks defined in framework YAML files, enabling new frameworks to
+be assessed without writing Python code.
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ from datetime import datetime, timezone
 from fnmatch import fnmatch
 from typing import Any
 
+from . import framework_registry
 from .domains import CERTIN_DOMAINS, DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
 
 _INDIAN_REGIONS = {"ap-south-1", "ap-south-2"}
@@ -585,6 +590,30 @@ def assess(
     rbi_score = len(rbi_satisfied) / 7 * 100 if is_rbi else None
     sebi_score = len(sebi_satisfied) / 6 * 100 if is_sebi else None
 
+    # Run declarative checks for any NEW frameworks (skips existing 4)
+    framework_flags = {
+        "is_rbi_regulated": is_rbi,
+        "is_sebi_regulated": is_sebi,
+    }
+    declarative_satisfied: dict[str, set] = {}
+    evaluate_declarative_checks(
+        filtered_components, framework_flags, _gap, tracker, declarative_satisfied
+    )
+
+    # Compute posture scores for any new declarative-only frameworks
+    extra_postures: dict[str, dict] = {}
+    for fw_id, sat_set in declarative_satisfied.items():
+        fw_data = framework_registry.get(fw_id)
+        if fw_data:
+            total_domains = len(fw_data.get("domains", {}))
+            if total_domains > 0:
+                score = round(len(sat_set) / total_domains * 100, 1)
+                extra_postures[fw_id] = {
+                    "satisfied": len(sat_set),
+                    "total": total_domains,
+                    "score": score,
+                }
+
     # Apply exception management (Task 9.2)
     active_gaps, suppressed_gaps = _apply_exceptions(gaps, exceptions)
 
@@ -600,6 +629,7 @@ def assess(
         "total_gaps": len(active_gaps),
         # New fields (additive only)
         "certin_posture": certin_posture_result,
+        "extra_postures": extra_postures if extra_postures else None,
         "resource_compliance": tracker.summary(),
         "per_account": per_account if per_account else None,
         "suppressed_gaps": suppressed_gaps,
@@ -655,6 +685,161 @@ def _apply_data_localization(
             confidence="medium",
             evidence={"region": region, "expected": "ap-south-1 or ap-south-2"})
         tracker.record("rbi", 4, name, passed=False)
+
+
+# ---- Generic declarative rule evaluator ----
+
+# Known frameworks that use hardcoded _check_* functions. These skip the
+# declarative evaluator to avoid duplicate gap generation.
+_HARDCODED_FRAMEWORKS = {"dpdp", "rbi", "sebi", "certin"}
+
+
+def evaluate_declarative_checks(
+    components: list[dict],
+    framework_flags: dict[str, bool],
+    gap_emitter: Any,
+    tracker: "_DomainResourceTracker",
+    satisfied_sets: dict[str, set],
+) -> None:
+    """Run declarative checks from framework YAML files.
+
+    This evaluator processes the checks section defined in each framework
+    YAML file. It handles two types of checks:
+
+    1. Resource-level checks (have a "match" field):
+       Run per component whose type contains the match string.
+       Compare a property value against an expected value.
+
+    2. Architecture-level checks (have a "match_any" field):
+       Check if ANY component type contains the match string.
+       If not found, emit a gap.
+
+    For the 4 existing frameworks (dpdp, rbi, sebi, certin), the hardcoded
+    _check_* functions remain authoritative. This evaluator only runs for
+    NEW frameworks added via YAML that do not have custom Python logic.
+
+    Args:
+        components: List of component dicts from scanner or parsers.
+        framework_flags: Dict of activation params to booleans.
+        gap_emitter: Callable matching the _gap() closure signature.
+        tracker: Domain resource tracker instance.
+        satisfied_sets: Dict of framework_id to set of satisfied domain numbers.
+    """
+    active_frameworks = framework_registry.get_active_frameworks(framework_flags)
+
+    for fw in active_frameworks:
+        fw_id = fw["id"]
+
+        # Skip frameworks that have hardcoded Python checks
+        if fw_id in _HARDCODED_FRAMEWORKS:
+            continue
+
+        checks = fw.get("checks", [])
+        if not checks:
+            continue
+
+        # Get or create the satisfied set for this framework
+        satisfied = satisfied_sets.setdefault(fw_id, set())
+        domain_names = {num: d["name"] for num, d in fw.get("domains", {}).items()}
+
+        for check in checks:
+            if "match" in check:
+                # Resource-level check
+                _run_resource_check(check, components, fw_id, domain_names, gap_emitter, tracker, satisfied)
+            elif "match_any" in check:
+                # Architecture-level check
+                _run_architecture_check(check, components, fw_id, domain_names, gap_emitter, tracker, satisfied)
+
+
+def _run_resource_check(
+    check: dict,
+    components: list[dict],
+    fw_id: str,
+    domain_names: dict[int, str],
+    gap_emitter: Any,
+    tracker: "_DomainResourceTracker",
+    satisfied: set[int],
+) -> None:
+    """Evaluate a single resource-level declarative check against all matching components."""
+    match_pattern = check["match"]
+    prop_name = check.get("property", "")
+    expected = check.get("expect")
+    expect_min = check.get("expect_min")
+    domain = check.get("domain", 0)
+    risk = check.get("risk", "medium")
+    gap_desc = check.get("gap", "")
+    remediation = check.get("remediation", "")
+    reference = check.get("reference", "")
+    confidence = check.get("confidence", "medium")
+
+    for comp in components:
+        rtype = comp.get("type", "")
+        if match_pattern not in rtype:
+            continue
+
+        name = comp.get("name", "")
+        props = comp.get("properties", {})
+        actual = props.get(prop_name)
+
+        passed = False
+        if expect_min is not None:
+            # Numeric minimum comparison (for example retention_days >= 365)
+            try:
+                passed = actual is not None and int(actual) >= int(expect_min)
+            except (ValueError, TypeError):
+                passed = False
+        elif expected is True:
+            passed = bool(actual)
+        elif expected is False:
+            passed = not actual
+        elif isinstance(expected, str):
+            passed = str(actual).lower() == expected.lower() if actual else False
+        else:
+            passed = actual == expected
+
+        tracker.record(fw_id, domain, name, passed=passed)
+
+        if passed:
+            satisfied.add(domain)
+        else:
+            gap_emitter(
+                name, fw_id, domain, risk,
+                f"{gap_desc} ({name})" if name not in gap_desc else gap_desc,
+                remediation, reference,
+                confidence=confidence,
+                evidence={"property": prop_name, "actual": actual, "expected": expected or expect_min},
+            )
+
+
+def _run_architecture_check(
+    check: dict,
+    components: list[dict],
+    fw_id: str,
+    domain_names: dict[int, str],
+    gap_emitter: Any,
+    tracker: "_DomainResourceTracker",
+    satisfied: set[int],
+) -> None:
+    """Evaluate a single architecture-level declarative check."""
+    match_pattern = check["match_any"].lower()
+    domain = check.get("domain", 0)
+    risk = check.get("risk", "medium")
+    gap_desc = check.get("gap", "")
+    remediation = check.get("remediation", "")
+    reference = check.get("reference", "")
+    confidence = check.get("confidence", "high")
+
+    found = any(match_pattern in comp.get("type", "").lower() for comp in components)
+
+    if found:
+        satisfied.add(domain)
+    else:
+        gap_emitter(
+            "architecture", fw_id, domain, risk,
+            gap_desc, remediation, reference,
+            confidence=confidence,
+            evidence={f"{match_pattern}_enabled": False, "expected": True},
+        )
 
 
 # ---- Per-resource check functions (updated with confidence + tracker) ----
