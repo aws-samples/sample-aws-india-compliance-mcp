@@ -16,6 +16,7 @@ An MCP server that assesses AWS infrastructure against regulatory compliance fra
 <!-- FRAMEWORKS_START -->
 - **CERT-In Directions on Information Security Practices 2022**
 - **Digital Personal Data Protection Act 2023 + Rules 2025**
+- **IRDAI Information and Cyber Security Guidelines 2023**
 - **RBI Master Direction on IT Governance, Risk, Controls and Assurance Practices**
 - **SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) / Cloud Framework**
 <!-- FRAMEWORKS_END -->
