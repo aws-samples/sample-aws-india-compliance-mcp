@@ -37,10 +37,11 @@ nav:
   - Tools Reference: tools.md
   - Frameworks:
     - Overview: frameworks/index.md
+    - CERT-In Directions: frameworks/certin.md
     - DPDP Act 2023: frameworks/dpdp.md
+    - IRDAI ICS Guidelines: frameworks/irdai.md
     - RBI Master Direction: frameworks/rbi.md
     - SEBI CSCRF: frameworks/sebi.md
-    - CERT-In Directions: frameworks/certin.md
   - Architecture: architecture.md
   - Security: security.md
   - Contributing: contributing.md

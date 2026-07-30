@@ -255,9 +255,50 @@ def main() -> None:
             f.write(page_content)
         print(f"  Generated: {page_path} ({len(fw.get('domains', {}))} domains)")
 
+    # Update mkdocs.yml nav to include all frameworks
+    update_mkdocs_nav(frameworks)
+
     print()
     print(f"Done. {len(frameworks)} framework pages generated in {DOCS_DIR}/")
 
+
+def update_mkdocs_nav(frameworks: list[dict]) -> None:
+    """Update the Frameworks nav section in mkdocs.yml to include all frameworks."""
+    mkdocs_path = REPO_ROOT / "mkdocs.yml"
+    if not mkdocs_path.exists():
+        return
+
+    content = mkdocs_path.read_text(encoding="utf-8")
+
+    # Build the new frameworks nav entries
+    nav_lines: list[str] = []
+    nav_lines.append("  - Frameworks:")
+    nav_lines.append("    - Overview: frameworks/index.md")
+    for fw in frameworks:
+        fw_id = fw["id"]
+        name = fw["name"]
+        # Use framework id as a clean short label
+        label_map = {
+            "dpdp": "DPDP Act 2023",
+            "rbi": "RBI Master Direction",
+            "sebi": "SEBI CSCRF",
+            "certin": "CERT-In Directions",
+            "irdai": "IRDAI ICS Guidelines",
+        }
+        label = label_map.get(fw_id, name[:50])
+        nav_lines.append(f"    - {label}: frameworks/{fw_id}.md")
+
+    new_nav = "\n".join(nav_lines) + "\n"
+
+    # Find and replace the Frameworks section in nav
+    import re
+    # Match from "  - Frameworks:" through all lines starting with "    - "
+    pattern = r"(  - Frameworks:\n(?:    - [^\n]+\n)+)"
+    if re.search(pattern, content):
+        updated = re.sub(pattern, new_nav, content)
+        if updated != content:
+            mkdocs_path.write_text(updated, encoding="utf-8")
+            print(f"  Updated: mkdocs.yml nav ({len(frameworks)} framework entries)")
 
 if __name__ == "__main__":
     main()
