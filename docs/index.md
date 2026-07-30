@@ -1,6 +1,6 @@
-# AWS India Compliance MCP Server
+# AWS Compliance MCP Server
 
-An MCP server that assesses AWS infrastructure against Indian regulatory compliance frameworks. Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
+An MCP server that assesses AWS infrastructure against regulatory compliance frameworks. Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 ## What It Does
 

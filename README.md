@@ -1,4 +1,4 @@
-# AWS India Compliance MCP Server
+# AWS Compliance MCP Server
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![AWS](https://img.shields.io/badge/AWS-Samples-orange)](https://github.com/aws-samples)
@@ -9,14 +9,16 @@
 
 **Full documentation: https://aws-samples.github.io/sample-aws-india-compliance-mcp/**
 
-An MCP server that assesses AWS infrastructure against Indian regulatory compliance frameworks. Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
+An MCP server that assesses AWS infrastructure against regulatory compliance frameworks. Works with Kiro, Claude Desktop, Cursor, or any MCP-compatible client.
 
 **Supported frameworks:**
 
-- **DPDP Act 2023** (Digital Personal Data Protection) + Rules 2025
-- **RBI Master Direction** on IT Governance 2023
-- **SEBI CSCRF 2024** (Cybersecurity and Cyber Resilience Framework)
-- **CERT-In Directions 2022** (Incident reporting, log retention, NTP sync)
+<!-- FRAMEWORKS_START -->
+- **CERT-In Directions on Information Security Practices 2022**
+- **Digital Personal Data Protection Act 2023 + Rules 2025**
+- **RBI Master Direction on IT Governance, Risk, Controls and Assurance Practices**
+- **SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) / Cloud Framework**
+<!-- FRAMEWORKS_END -->
 
 **Important:** This tool provides automated assessment guidance based on published regulatory frameworks. It does not constitute legal advice or compliance certification. Organizations should consult qualified compliance and legal professionals for definitive regulatory compliance determinations.
 

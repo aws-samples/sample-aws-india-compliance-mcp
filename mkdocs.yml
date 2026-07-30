@@ -1,5 +1,5 @@
-site_name: AWS India Compliance MCP Server
-site_description: Assess AWS infrastructure against Indian regulatory compliance frameworks
+site_name: AWS Compliance MCP Server
+site_description: Assess AWS infrastructure against regulatory compliance frameworks
 site_url: https://aws-samples.github.io/sample-aws-india-compliance-mcp/
 repo_url: https://github.com/aws-samples/sample-aws-india-compliance-mcp
 repo_name: aws-samples/sample-aws-india-compliance-mcp
