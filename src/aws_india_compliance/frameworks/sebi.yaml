@@ -1,0 +1,248 @@
+# SEBI Cybersecurity and Cyber Resilience Framework (CSCRF)
+# Source: https://www.sebi.gov.in
+# Last updated: 2026-06-30
+
+id: sebi
+name: "SEBI Cybersecurity and Cyber Resilience Framework (CSCRF) / Cloud Framework"
+version: "Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024)"
+source_url: "https://www.sebi.gov.in/legal/circulars/aug-2024/cybersecurity-and-cyber-resilience-framework-cscrf-_85964.html"
+last_verified: "2026-06-30"
+
+source_domains:
+  - "sebi.gov.in"
+
+activation: opt_in
+activation_param: "is_sebi_regulated"
+
+search_sources:
+  - "https://www.sebi.gov.in"
+  - "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=3&ssid=27&smid=0"
+
+circular_sources:
+  - "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=2&smid=0"
+
+keywords:
+  - "cyber security"
+  - "cyber resilience"
+  - "cscrf"
+  - "cloud framework"
+  - "information security"
+  - "soc"
+  - "incident"
+  - "data protection"
+
+penalty_default: "As per SEBI adjudication guidelines"
+
+config_rule_params:
+  CW_LOGGROUP_RETENTION_PERIOD_CHECK:
+    MinRetentionTime: "365"
+
+domains:
+  1:
+    name: "Cyber Governance"
+    section: "Section 3.1 / Principle 1"
+    type: organizational
+    nist_csf: "ID.GV"
+    aws_controls:
+      - "AWS Organizations"
+      - "Control Tower"
+      - "Service Catalog"
+      - "Audit Manager"
+    config_rules: []
+    guardrails: []
+
+  2:
+    name: "Cyber Risk Identification"
+    section: "Section 3.2 / Principle 2-3"
+    type: technical
+    nist_csf: "ID.RA, ID.AM"
+    aws_controls:
+      - "AWS Config"
+      - "Inspector"
+      - "Systems Manager"
+      - "Security Hub"
+    config_rules:
+      - "ec2-instance-managed-by-systems-manager"
+      - "ec2-stopped-instance"
+    guardrails: []
+
+  3:
+    name: "Cyber Protection"
+    section: "Section 3.3 / Security IN the Cloud"
+    type: technical
+    nist_csf: "PR.AC, PR.DS, PR.IP"
+    aws_controls:
+      - "KMS (BYOK)"
+      - "IAM least privilege"
+      - "MFA"
+      - "Network segmentation"
+      - "WAF"
+      - "Shield"
+      - "VPC"
+      - "S3 encryption"
+      - "RDS encryption"
+    config_rules:
+      - "encrypted-volumes"
+      - "rds-storage-encrypted"
+      - "s3-bucket-server-side-encryption-enabled"
+      - "s3-bucket-public-read-prohibited"
+      - "iam-policy-no-statements-with-admin-access"
+      - "mfa-enabled-for-iam-console-access"
+      - "vpc-flow-logs-enabled"
+      - "restricted-ssh"
+    guardrails:
+      - "AWS-GR_ENCRYPTED_VOLUMES"
+      - "AWS-GR_RDS_STORAGE_ENCRYPTED"
+      - "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED"
+      - "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED"
+      - "AWS-GR_RESTRICT_ROOT_USER"
+      - "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS"
+      - "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP"
+
+  4:
+    name: "Cyber Detection"
+    section: "Section 3.4 / SOC Integration"
+    type: technical
+    nist_csf: "DE.AE, DE.CM"
+    aws_controls:
+      - "GuardDuty"
+      - "Security Hub"
+      - "CloudWatch"
+      - "Detective"
+      - "SIEM integration"
+    config_rules:
+      - "guardduty-enabled-centralized"
+      - "securityhub-enabled"
+      - "cloudwatch-alarm-action-check"
+    guardrails: []
+
+  5:
+    name: "Cyber Response"
+    section: "Section 3.5 / Incident Management"
+    type: technical
+    nist_csf: "RS.RP, RS.CO"
+    aws_controls:
+      - "EventBridge"
+      - "Lambda"
+      - "SNS"
+      - "Systems Manager Incident Manager"
+    config_rules: []
+    guardrails: []
+
+  6:
+    name: "Cyber Recovery"
+    section: "Section 3.6 / BCP-DR"
+    type: technical
+    nist_csf: "RC.RP, RC.IM"
+    aws_controls:
+      - "AWS Backup"
+      - "S3 versioning"
+      - "RDS Multi-AZ"
+      - "Cross-region replication"
+      - "DynamoDB PITR"
+    config_rules:
+      - "db-instance-backup-enabled"
+      - "dynamodb-pitr-enabled"
+      - "s3-bucket-versioning-enabled"
+    guardrails: []
+
+# Declarative assessment checks for SEBI CSCRF.
+
+checks:
+  # Resource-level checks
+  - match: "S3::Bucket"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 3
+    risk: high
+    gap: "S3 bucket lacks encryption at rest"
+    remediation: "Enable SSE-KMS or SSE-S3 encryption"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "S3::Bucket"
+    property: "public_access_blocked"
+    expect: true
+    domain: 3
+    risk: high
+    gap: "S3 public access not blocked"
+    remediation: "Enable S3 Block Public Access"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "RDS::DB"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 3
+    risk: high
+    gap: "RDS instance not encrypted at rest"
+    remediation: "Enable RDS storage encryption"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "RDS::DB"
+    property: "public"
+    expect: false
+    domain: 3
+    risk: critical
+    gap: "RDS instance is publicly accessible"
+    remediation: "Disable public accessibility"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "EC2::Instance"
+    property: "public_ip"
+    expect: false
+    domain: 3
+    risk: high
+    gap: "EC2 instance has a public IP address"
+    remediation: "Remove public IP or move to private subnet"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "DynamoDB::Table"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 3
+    risk: high
+    gap: "DynamoDB table not encrypted with KMS"
+    remediation: "Enable KMS encryption on the table"
+    reference: "SEBI CSCRF Section 3.3"
+    confidence: high
+
+  - match: "DynamoDB::Table"
+    property: "pitr"
+    expect: true
+    domain: 6
+    risk: medium
+    gap: "DynamoDB table lacks point-in-time recovery"
+    remediation: "Enable PITR for disaster recovery"
+    reference: "SEBI CSCRF Section 3.6"
+    confidence: high
+
+  - match: "Logs::LogGroup"
+    property: "retention_days"
+    expect_min: 365
+    domain: 4
+    risk: medium
+    gap: "CloudWatch log group retention is less than 1 year"
+    remediation: "Set retention to at least 365 days for SOC requirements"
+    reference: "SEBI CSCRF Section 3.4"
+    confidence: high
+
+  # Architecture-level checks
+  - match_any: "guardduty"
+    domain: 4
+    risk: critical
+    gap: "No GuardDuty enabled for cyber detection"
+    remediation: "Enable Amazon GuardDuty"
+    reference: "SEBI CSCRF Section 3.4"
+    confidence: high
+
+  - match_any: "securityhub"
+    domain: 4
+    risk: critical
+    gap: "No Security Hub for centralized detection"
+    remediation: "Enable AWS Security Hub"
+    reference: "SEBI CSCRF Section 3.4"
+    confidence: high

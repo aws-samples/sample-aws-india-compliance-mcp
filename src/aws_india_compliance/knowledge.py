@@ -1,14 +1,11 @@
-"""Live regulatory text search from authoritative Indian government sources.
+"""Live regulatory text search from authoritative sources.
 
-Fetches regulatory text at runtime from official sources:
-- dpdpact.in — DPDP Act 2023 and Rules 2025
-- rbi.org.in — RBI Master Directions
-- sebi.gov.in — SEBI CSCRF circulars
-
-When live fetch fails or returns no results (e.g., JS-rendered pages,
-site downtime, rate limiting), falls back to the bundled
-control_mappings.json manifest which contains domain names, section
-references, AWS control mappings, Config rules, and guardrails.
+Fetches regulatory text at runtime from official sources defined in the
+per-framework YAML files (loaded via framework_registry). When live
+fetch fails or returns no results (for example JS-rendered pages, site
+downtime, or rate limiting), falls back to the bundled control_mappings.json
+manifest which contains domain names, section references, AWS control
+mappings, Config rules, and guardrails.
 
 Security:
 - HTTPS only (TLS 1.2+). Plain HTTP never used.
@@ -28,45 +25,27 @@ import urllib.error
 from html.parser import HTMLParser
 from typing import Any
 
+from . import framework_registry
 from .domains import ALLOWED_SOURCE_DOMAINS, load_manifest
 
 MAX_RESPONSE_SIZE = 5 * 1024 * 1024  # 5 MB
 REQUEST_TIMEOUT = 30  # seconds
 ALLOWED_CONTENT_TYPES = {"text/html", "application/json", "text/plain", "application/xhtml+xml"}
 
-_SOURCES: dict[str, list[str]] = {
-    "dpdp": [
-        "https://dpdpact.in",
-    ],
-    "rbi": [
-        "https://rbi.org.in/Scripts/BS_ViewMasterDirections.aspx",
-    ],
-    "sebi": [
-        "https://www.sebi.gov.in",
-        "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=3&ssid=27&smid=0",
-    ],
-}
 
-# Circular listing pages for new-publication detection
-_CIRCULAR_SOURCES: dict[str, list[str]] = {
-    "rbi": [
-        "https://rbi.org.in/Scripts/BS_CircularIndexDisplay.aspx",
-    ],
-    "sebi": [
-        "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=2&smid=0",
-    ],
-}
+def _get_sources() -> dict[str, list[str]]:
+    """Return search source URLs from the framework registry."""
+    return framework_registry.get_search_sources()
 
-# Keywords to filter relevant circulars
-_CIRCULAR_KEYWORDS: dict[str, list[str]] = {
-    "dpdp": ["data protection", "personal data", "dpdp", "privacy", "consent", "data principal",
-             "data fiduciary", "breach notification"],
-    "rbi": ["it governance", "cyber security", "information security", "it risk",
-            "outsourcing", "cloud", "data localization", "digital payment",
-            "master direction", "csite", "information technology"],
-    "sebi": ["cyber security", "cyber resilience", "cscrf", "cloud framework",
-             "information security", "soc", "incident", "data protection"],
-}
+
+def _get_circular_sources() -> dict[str, list[str]]:
+    """Return circular listing page URLs from the framework registry."""
+    return framework_registry.get_circular_sources()
+
+
+def _get_circular_keywords() -> dict[str, list[str]]:
+    """Return keyword lists for circular filtering from the framework registry."""
+    return framework_registry.get_keywords()
 
 # Cache: URL -> (text, timestamp)
 _CACHE: dict[str, tuple[str, float]] = {}
@@ -282,12 +261,13 @@ def search_live(query: str, framework: str = "", top_k: int = 5) -> list[dict[st
         return []
 
     sources: dict[str, list[str]] = {}
-    if not framework or framework.lower() == "dpdp":
-        sources["dpdp"] = _SOURCES["dpdp"]
-    if not framework or framework.lower() == "rbi":
-        sources["rbi"] = _SOURCES["rbi"]
-    if not framework or framework.lower() == "sebi":
-        sources["sebi"] = _SOURCES["sebi"]
+    all_sources = _get_sources()
+    if not framework:
+        sources = all_sources
+    else:
+        fw_lower = framework.lower()
+        if fw_lower in all_sources:
+            sources[fw_lower] = all_sources[fw_lower]
 
     results: list[dict[str, Any]] = []
     frameworks_with_results: set[str] = set()
@@ -405,7 +385,8 @@ def monitor_source_changes() -> dict[str, Any]:
         }
 
         # Fetch and hash the primary source page
-        urls = _SOURCES.get(fw_key, [])
+        all_sources = _get_sources()
+        urls = all_sources.get(fw_key, [])
         combined_text = ""
         for url in urls:
             text = _fetch_text(url)
@@ -426,8 +407,10 @@ def monitor_source_changes() -> dict[str, Any]:
         last_verified_str = fw_data.get("last_verified", "")
         last_verified_date = _parse_date_flexible(last_verified_str) if last_verified_str else None
 
-        circular_urls = _CIRCULAR_SOURCES.get(fw_key, [])
-        keywords = _CIRCULAR_KEYWORDS.get(fw_key, [])
+        all_circular_sources = _get_circular_sources()
+        all_keywords = _get_circular_keywords()
+        circular_urls = all_circular_sources.get(fw_key, [])
+        keywords = all_keywords.get(fw_key, [])
 
         for url in circular_urls:
             text = _fetch_text(url)
@@ -487,7 +470,8 @@ def update_content_hashes() -> dict[str, str]:
     results: dict[str, str] = {}
 
     for fw_key in manifest.get("frameworks", {}):
-        urls = _SOURCES.get(fw_key, [])
+        all_sources = _get_sources()
+        urls = all_sources.get(fw_key, [])
         combined_text = ""
         for url in urls:
             text = _fetch_text(url)

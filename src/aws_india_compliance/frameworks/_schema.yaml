@@ -1,0 +1,158 @@
+# Schema definition for compliance framework YAML files.
+#
+# Every framework file in this directory must conform to this structure.
+# Use scripts/scaffold_framework.py --validate to check a file against this schema.
+
+schema_version: "1.0"
+
+# Required top-level fields
+required_fields:
+  - id            # Short lowercase identifier (e.g. "dpdp", "rbi", "gdpr")
+  - name          # Full human-readable name of the framework
+  - version       # Regulation version or circular date
+  - source_url    # Primary authoritative URL for the regulation text
+
+# Optional top-level fields with defaults
+optional_fields:
+  source_domains:       # List of allowed domains for live text fetch
+    type: list
+    items: string
+    default: []
+
+  activation:           # "always" or "opt_in"
+    type: string
+    allowed: ["always", "opt_in"]
+    default: "opt_in"
+
+  activation_param:     # Parameter name used when activation is opt_in
+    type: string
+    default: ""
+
+  search_sources:       # URLs for regulatory text search
+    type: list
+    items: string
+    default: []
+
+  circular_sources:     # URLs for circular listing pages (used by admin check)
+    type: list
+    items: string
+    default: []
+
+  keywords:             # Keywords to filter relevant circulars on listing pages
+    type: list
+    items: string
+    default: []
+
+  last_verified:        # ISO date when mappings were last verified against source
+    type: string
+    format: date
+    default: ""
+
+  content_hash:         # SHA-256 hash of source page content at last verification
+    type: string
+    default: ""
+
+  penalty_default:      # Default penalty text shown on gaps
+    type: string
+    default: ""
+
+  penalty_overrides:    # Per-domain penalty override
+    type: mapping
+    keys: integer
+    values: string
+    default: {}
+
+  config_rule_params:   # Framework-specific Config rule parameter overrides
+    type: mapping
+    keys: string
+    values: mapping
+    default: {}
+
+  custom_module:        # Optional Python module for complex assessment logic
+    type: string
+    default: ""
+
+  notes:                # Free-form notes about this framework version
+    type: string
+    default: ""
+
+# Domain structure (required, at least 1 domain)
+domains:
+  type: mapping
+  keys: integer         # Domain number (1-based)
+  values:
+    required_fields:
+      - name            # Domain name from the regulation
+      - section         # Regulatory section or article reference
+      - type            # "organizational" or "technical"
+
+    optional_fields:
+      aws_controls:     # High-level AWS service recommendations
+        type: list
+        items: string
+        default: []
+
+      config_rules:     # AWS Config managed rule names that validate this domain
+        type: list
+        items: string
+        default: []
+
+      guardrails:       # Control Tower guardrail identifiers
+        type: list
+        items: string
+        default: []
+
+      nist_csf:         # Optional NIST CSF cross-reference
+        type: string
+        default: ""
+
+      notes:            # Additional notes about this domain
+        type: string
+        default: ""
+
+# Declarative assessment checks (optional, for technical domains)
+checks:
+  type: list
+  items:
+    # Resource-level check: runs per matching component
+    resource_check:
+      required_fields:
+        - match         # Resource type pattern (e.g. "S3::Bucket")
+        - property      # Property name to inspect
+        - expect        # Expected value
+        - domain        # Domain number this check satisfies
+        - risk          # Gap severity: "critical", "high", "medium", "low"
+        - gap           # Human-readable gap description
+        - remediation   # Fix recommendation
+        - reference     # Regulatory section citation
+
+      optional_fields:
+        confidence:     # "high", "medium", "low" (default "medium")
+          type: string
+          allowed: ["high", "medium", "low"]
+          default: "medium"
+
+    # Architecture-level check: runs once across all components
+    architecture_check:
+      required_fields:
+        - match_any     # Substring to find in any component type (lowercase)
+        - domain        # Domain number
+        - risk          # Gap severity
+        - gap           # Gap description if match_any is NOT found
+        - remediation   # Fix recommendation
+        - reference     # Regulatory citation
+
+      optional_fields:
+        confidence:
+          type: string
+          allowed: ["high", "medium", "low"]
+          default: "high"
+
+# Validation rules
+validation:
+  id_pattern: "^[a-z][a-z0-9_]{1,30}$"
+  domain_numbers_must_be_sequential: false
+  domain_type_allowed: ["organizational", "technical"]
+  risk_levels_allowed: ["critical", "high", "medium", "low"]
+  config_rule_names_pattern: "^[a-z0-9-]+$"
+  guardrail_pattern: "^AWS-GR_[A-Z0-9_]+$"

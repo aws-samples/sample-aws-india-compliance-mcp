@@ -27,6 +27,7 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP
 
 from . import __version__
+from . import framework_registry
 from .assessment import assess
 from .aws_scanner import scan_via_config
 from .control_tower import assess_control_tower, scan_control_tower as _scan_ct
@@ -444,14 +445,10 @@ def list_control_domains(framework: str = "dpdp") -> str:
     Returns:
         JSON with numbered control domains.
     """
-    from .domains import SEBI_DOMAINS, CERTIN_DOMAINS
-    frameworks = {
-        "dpdp": DPDP_DOMAINS,
-        "rbi": RBI_DOMAINS,
-        "sebi": SEBI_DOMAINS,
-        "certin": CERTIN_DOMAINS,
-    }
-    domains = frameworks.get(framework.lower(), DPDP_DOMAINS)
+    domains = framework_registry.get_domains(framework.lower())
+    if not domains:
+        valid = ", ".join(framework_registry.get_ids())
+        return json.dumps({"error": f"Unknown framework: {framework}. Valid: {valid}"})
     return json.dumps({"framework": framework, "domains": {str(k): v for k, v in domains.items()}}, indent=2)
 
 

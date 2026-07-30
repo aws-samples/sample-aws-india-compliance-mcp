@@ -1,8 +1,9 @@
 """Control Tower scanner and compliance assessment.
 
 Discovers landing zone configuration, enabled controls per OU,
-and maps them to DPDP/RBI control domains. Recommends missing
-controls based on compliance requirements.
+and maps them to compliance control domains. Recommends missing
+controls based on per-framework guardrail definitions loaded from
+the framework registry.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from . import framework_registry
 from .domains import CERTIN_DOMAINS, DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
 
 _logger = logging.getLogger(__name__)
@@ -44,37 +46,40 @@ CT_CONTROL_MAP: dict[str, dict] = {
 }
 
 # Recommended controls per compliance domain
-RECOMMENDED_DPDP: dict[int, list[str]] = {
-    5: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"],
-    6: ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED", "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED",
-        "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED",
-        "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED", "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC"],
-    7: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
-    8: ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"],
-}
+RECOMMENDED_DPDP: dict[int, list[str]] = {}
+RECOMMENDED_RBI: dict[int, list[str]] = {}
+RECOMMENDED_SEBI: dict[int, list[str]] = {}
+RECOMMENDED_CERTIN: dict[int, list[str]] = {}
 
-RECOMMENDED_RBI: dict[int, list[str]] = {
-    4: ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED",
-        "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS", "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK"],
-    5: ["AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"],
-    7: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED"],
-}
 
-RECOMMENDED_SEBI: dict[int, list[str]] = {
-    1: ["AWS-GR_REGION_DENY", "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING"],
-    2: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED"],
-    3: ["AWS-GR_ENCRYPTED_VOLUMES", "AWS-GR_RDS_STORAGE_ENCRYPTED", "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED",
-        "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED", "AWS-GR_RESTRICT_ROOT_USER", "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS",
-        "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"],
-    4: ["AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED", "AWS-GR_CLOUDTRAIL_ENABLED"],
-    6: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
-}
+def _build_recommended_controls() -> None:
+    """Build RECOMMENDED_* dicts from framework registry guardrail lists.
 
-RECOMMENDED_CERTIN: dict[int, list[str]] = {
-    1: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON"],
-    2: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY", "AWS-GR_LOG_GROUP_ENCRYPTED"],
-    4: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON"],
-}
+    Reads each framework's domains and collects guardrails per domain.
+    Only populates domains that have at least one guardrail defined.
+    """
+    global RECOMMENDED_DPDP, RECOMMENDED_RBI, RECOMMENDED_SEBI, RECOMMENDED_CERTIN
+
+    mapping = {
+        "dpdp": RECOMMENDED_DPDP,
+        "rbi": RECOMMENDED_RBI,
+        "sebi": RECOMMENDED_SEBI,
+        "certin": RECOMMENDED_CERTIN,
+    }
+
+    for fw_id, target_dict in mapping.items():
+        target_dict.clear()
+        fw = framework_registry.get(fw_id)
+        if not fw:
+            continue
+        for dom_num, dom_data in fw.get("domains", {}).items():
+            guardrails = dom_data.get("guardrails", [])
+            if guardrails:
+                target_dict[dom_num] = list(guardrails)
+
+
+# Build on module load
+_build_recommended_controls()
 
 
 def scan_control_tower(region: str) -> dict[str, Any]:

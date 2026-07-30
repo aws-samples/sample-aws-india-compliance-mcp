@@ -299,7 +299,7 @@ RBI-regulated scans additionally flag resources deployed outside ap-south-1 and 
 | SEBI CSCRF | Circular SEBI/HO/ITD/ITD-SEC-1/P/CIR/2024/113 (August 20, 2024) | sebi.gov.in |
 | CERT-In Directions | Directions dated April 28, 2022 | cert-in.org.in |
 
-Control mappings are maintained in `control_mappings.json` with `manifest_version`, `last_verified` dates, and source URLs per framework. Mappings are updated via new PyPI releases when regulatory changes occur.
+Control mappings are maintained in per-framework YAML files under `src/aws_india_compliance/frameworks/` (the source of truth) and compiled into `control_mappings.json` via `scripts/build_manifest.py`. Each framework YAML carries `last_verified` dates and source URLs. Mappings are updated via new PyPI releases when regulatory changes occur.
 
 ## Security
 
@@ -444,7 +444,7 @@ For org-wide scans, this policy must be attached in the **management account** (
 
 ## Conformance packs
 
-The project includes a conformance pack generator that produces deployable AWS Config conformance pack YAML templates from `control_mappings.json`. Each pack maps AWS-managed Config rules to regulatory control domains.
+The project includes a conformance pack generator that produces deployable AWS Config conformance pack YAML templates from the framework registry (per-framework YAML files in `src/aws_india_compliance/frameworks/`). Each pack maps AWS-managed Config rules to regulatory control domains. New frameworks are supported automatically when a YAML definition is added to the registry.
 
 A pre-built DPDP Act conformance pack is available at `conformance-packs/DPDP-Act-Conformance-Pack.yaml`. Deploy it with:
 
@@ -490,8 +490,8 @@ This removes the Config rules created by the pack. No other AWS resources are cr
 ```
 src/aws_india_compliance/
   server.py              # MCP server — 8 user-facing tools (compact summary + drill-down + feedback)
-  admin.py               # CLI-only maintainer tools (regulatory update workflow)
-  assessment.py          # Compliance assessment engine (confidence scoring, resource tracking, exceptions)
+  admin.py               # CLI-only maintainer tools (regulatory update workflow, writes to framework YAML)
+  assessment.py          # Compliance assessment engine (confidence scoring, resource tracking, exceptions, declarative rule evaluator)
   aws_scanner.py         # AWS Config query + fallback API checks (Backup, Inspector)
   control_tower.py       # Control Tower scanner + per-OU guardrail mapping
   parsers.py             # CloudFormation/Terraform/draw.io parsers
@@ -500,6 +500,8 @@ src/aws_india_compliance/
   report_formatter.py    # Markdown report generator (account scan + Control Tower)
   docx_formatter.py      # DOCX report generator with color coding
   conformance_pack.py    # AWS Config conformance pack YAML generator
+  framework_registry.py  # Auto-discovers framework YAML definitions at runtime
+  frameworks/            # Per-framework YAML definitions (drop-in to add new frameworks)
   control_mappings.json  # Versioned control-to-AWS mapping manifest (DPDP, RBI, SEBI, CERT-In)
 scripts/
   check_regulatory_updates.py  # CI script for GitHub Actions workflow
@@ -515,6 +517,23 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 ```
 
 28 tests covering assessment logic, scanner component extraction, Control Tower gap analysis, domain definitions, manifest integrity, and all three parsers.
+
+## Contributing a new compliance framework
+
+This project uses a plugin architecture. Each compliance framework is defined
+in a single YAML file under `src/aws_india_compliance/frameworks/`. To add a
+new framework (for example GDPR, PCI DSS, or MAS TRM), you create one YAML
+file and the server auto-discovers it at startup. No Python code changes needed.
+
+**Quick start:**
+```bash
+python scripts/scaffold_framework.py --new --id gdpr --name "EU GDPR" --source-url "https://gdpr-info.eu"
+```
+
+Then fill in the domains and checks, validate, and submit a PR.
+
+See [CONTRIBUTING_FRAMEWORKS.md](CONTRIBUTING_FRAMEWORKS.md) for the full guide
+with examples, field reference, and available Config rules.
 
 ## Environment variables
 

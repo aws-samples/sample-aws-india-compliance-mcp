@@ -1,0 +1,32 @@
+name: Framework YAML Validation
+
+on:
+  pull_request:
+    paths:
+      - "src/aws_india_compliance/frameworks/*.yaml"
+      - "scripts/scaffold_framework.py"
+      - "scripts/build_manifest.py"
+
+jobs:
+  validate-frameworks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Validate all framework YAML files
+        run: python scripts/scaffold_framework.py --validate-all
+
+      - name: Verify manifest can be rebuilt
+        run: python scripts/build_manifest.py
+
+      - name: Run unit tests
+        run: |
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          PYTHONPATH=src python -m pytest tests/ -v

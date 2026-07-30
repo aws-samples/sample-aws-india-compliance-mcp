@@ -1,7 +1,8 @@
 """Conformance pack generator for AWS Config.
 
 Generates AWS Config-compatible conformance pack YAML templates from the
-control_mappings.json manifest. Supports all frameworks: DPDP, RBI, SEBI, CERT-In.
+framework registry (loaded from per-framework YAML files). Supports all
+registered frameworks dynamically.
 
 Each generated pack contains only AWS-managed Config rules with validated
 source identifiers and correct parameter specifications.
@@ -13,13 +14,8 @@ import json
 from datetime import date
 from typing import Any
 
-from .domains import (
-    CERTIN_DOMAINS,
-    DPDP_DOMAINS,
-    RBI_DOMAINS,
-    SEBI_DOMAINS,
-    load_manifest,
-)
+from . import framework_registry
+from .domains import load_manifest
 
 # Validated mapping: config rule name -> source identifier
 # All identifiers verified against AWS documentation (May 2026).
@@ -153,44 +149,18 @@ _RULE_DEFAULTS: dict[str, dict[str, Any]] = {
     },
 }
 
-# Framework-specific parameter overrides
-_FRAMEWORK_PARAM_OVERRIDES: dict[str, dict[str, dict[str, str]]] = {
-    "rbi": {
-        "CW_LOGGROUP_RETENTION_PERIOD_CHECK": {
-            "MinRetentionTime": "180",  # CERT-In 180-day requirement
-        },
-    },
-    "certin": {
-        "CW_LOGGROUP_RETENTION_PERIOD_CHECK": {
-            "MinRetentionTime": "180",  # CERT-In 180-day requirement
-        },
-    },
-    "dpdp": {
-        "CW_LOGGROUP_RETENTION_PERIOD_CHECK": {
-            "MinRetentionTime": "365",  # DPDP Rule 6 one-year retention
-        },
-    },
-    "sebi": {
-        "CW_LOGGROUP_RETENTION_PERIOD_CHECK": {
-            "MinRetentionTime": "365",  # SEBI CSCRF log retention
-        },
-    },
-}
+# Framework-specific parameter overrides are now read from the registry.
+# Each framework YAML has a config_rule_params section.
 
-# Framework display names
-_FRAMEWORK_NAMES: dict[str, str] = {
-    "dpdp": "Digital Personal Data Protection (DPDP) Act 2023 + Rules 2025",
-    "rbi": "RBI Master Direction on IT Governance, Risk, Controls and Assurance",
-    "sebi": "SEBI Cybersecurity and Cyber Resilience Framework (CSCRF)",
-    "certin": "CERT-In Directions on Information Security Practices 2022",
-}
 
-_FRAMEWORK_DOMAINS: dict[str, dict[int, str]] = {
-    "dpdp": DPDP_DOMAINS,
-    "rbi": RBI_DOMAINS,
-    "sebi": SEBI_DOMAINS,
-    "certin": CERTIN_DOMAINS,
-}
+def _get_framework_names() -> dict[str, str]:
+    """Return framework display names from the registry."""
+    return {fw_id: fw["name"] for fw_id, fw in framework_registry.get_all().items()}
+
+
+def _get_framework_domains() -> dict[str, dict[int, str]]:
+    """Return domain name dicts for all frameworks from the registry."""
+    return {fw_id: framework_registry.get_domains(fw_id) for fw_id in framework_registry.get_ids()}
 
 
 def _rule_name_to_resource_id(rule_name: str) -> str:
@@ -206,8 +176,8 @@ def _get_params_for_rule(
     source_id: str, framework: str
 ) -> dict[str, str] | None:
     """Get parameters for a rule, applying framework-specific overrides."""
-    # Check framework overrides first
-    overrides = _FRAMEWORK_PARAM_OVERRIDES.get(framework, {})
+    # Check framework overrides from the registry first
+    overrides = framework_registry.get_config_rule_params(framework)
     if source_id in overrides:
         return overrides[source_id]
 
@@ -244,9 +214,13 @@ def generate_conformance_pack(
             - skipped_rules: Rules that couldn't be mapped to valid identifiers
     """
     fw_key = framework.lower()
-    if fw_key not in _FRAMEWORK_NAMES:
+    fw_names = _get_framework_names()
+    fw_domains_map = _get_framework_domains()
+
+    if fw_key not in fw_names:
+        valid = ", ".join(sorted(fw_names.keys()))
         return {
-            "error": f"Unknown framework: {framework}. Valid: dpdp, rbi, sebi, certin",
+            "error": f"Unknown framework: {framework}. Valid: {valid}",
         }
 
     manifest = load_manifest()
@@ -255,7 +229,7 @@ def generate_conformance_pack(
         return {"error": f"Framework '{fw_key}' not found in control_mappings.json"}
 
     domains = fw_data.get("domains", {})
-    domain_names = _FRAMEWORK_DOMAINS[fw_key]
+    domain_names = fw_domains_map[fw_key]
 
     # Filter domains
     domain_keys = sorted(domains.keys(), key=int)
@@ -300,7 +274,7 @@ def generate_conformance_pack(
             rules_by_domain[dom_key] = dom_rules
 
     # Build YAML content
-    fw_display = _FRAMEWORK_NAMES[fw_key]
+    fw_display = fw_names[fw_key]
     fw_version = fw_data.get("version", "")
     fw_source = fw_data.get("source_url", "")
     manifest_version = manifest.get("manifest_version", "")
