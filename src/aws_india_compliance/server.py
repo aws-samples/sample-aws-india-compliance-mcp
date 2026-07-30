@@ -19,7 +19,12 @@ import re
 from datetime import datetime
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+try:
+    # MCP SDK v2+
+    from mcp.server.mcpserver import MCPServer as FastMCP
+except ImportError:
+    # MCP SDK v1
+    from mcp.server.fastmcp import FastMCP
 
 from . import __version__
 from .assessment import assess
@@ -109,9 +114,16 @@ except (ValueError, TypeError):
 
 _transport = os.environ.get("MCP_TRANSPORT", "stdio")
 if _transport in ("streamable-http", "sse"):
-    mcp = FastMCP("aws-india-compliance", host=_MCP_HOST, port=_MCP_PORT, stateless_http=True)
+    mcp = FastMCP("aws-india-compliance")
+    _run_kwargs: dict[str, Any] = {
+        "transport": _transport,
+        "host": _MCP_HOST,
+        "port": _MCP_PORT,
+        "stateless_http": True,
+    }
 else:
     mcp = FastMCP("aws-india-compliance")
+    _run_kwargs = {"transport": "stdio"}
 
 
 # ---- User-Facing Tools (7) ----
@@ -765,8 +777,7 @@ def main() -> None:
 
     _logger.info("aws-india-compliance v%s — 8 tools exposed", __version__)
 
-    transport = os.environ.get("MCP_TRANSPORT", "stdio")
-    mcp.run(transport=transport)
+    mcp.run(**_run_kwargs)
 
 
 if __name__ == "__main__":
