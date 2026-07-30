@@ -1,0 +1,543 @@
+# IRDAI Information and Cyber Security Guidelines 2023
+# Source: https://irdai.gov.in
+# Reference: IRDAI/GA&HR/GDL/MISC/88/04/2023 (April 24, 2023)
+# Applies to: All insurers, insurance intermediaries, FRBs, brokers,
+#   corporate agents, web aggregators, TPAs, IMFs, insurance repositories,
+#   ISNPs, corporate surveyors, MISPs, CSCs, and IIB.
+
+id: irdai
+name: "IRDAI Information and Cyber Security Guidelines 2023"
+version: "IRDAI/GA&HR/GDL/MISC/88/04/2023 (April 24, 2023)"
+source_url: "https://irdai.gov.in"
+last_verified: "2026-07-30"
+
+source_domains:
+  - "irdai.gov.in"
+
+activation: opt_in
+activation_param: "is_irdai_regulated"
+
+search_sources:
+  - "https://irdai.gov.in"
+
+circular_sources:
+  - "https://irdai.gov.in"
+
+keywords:
+  - "information security"
+  - "cyber security"
+  - "data protection"
+  - "insurance"
+  - "CISO"
+  - "incident reporting"
+  - "VAPT"
+  - "cryptographic"
+  - "access control"
+
+penalty_default: "As per Insurance Act 1938 and IRDAI enforcement framework"
+
+config_rule_params:
+  CW_LOGGROUP_RETENTION_PERIOD_CHECK:
+    MinRetentionTime: "180"
+
+domains:
+  1:
+    name: "Information Security Governance"
+    section: "Chapter 1 - Governance Structure"
+    type: organizational
+    aws_controls:
+      - "AWS Organizations"
+      - "Control Tower"
+      - "IAM Identity Center"
+      - "Audit Manager"
+    config_rules: []
+    guardrails: []
+    notes: >
+      Requires Board of Directors oversight, Risk Management Committee,
+      and Information Security Risk Management Committee (ISRMC) with
+      CTO, CISO, CRO, CSO, and CHRO. Annual board-approved security policy.
+
+  2:
+    name: "Data Classification and Protection"
+    section: "Section 2.1 - Data Classification"
+    type: technical
+    aws_controls:
+      - "Macie for data discovery"
+      - "S3 Object Tagging"
+      - "KMS encryption"
+      - "S3 Block Public Access"
+    config_rules:
+      - "s3-bucket-server-side-encryption-enabled"
+      - "s3-bucket-public-read-prohibited"
+      - "s3-bucket-public-write-prohibited"
+      - "rds-storage-encrypted"
+      - "dynamodb-table-encrypted-kms"
+    guardrails:
+      - "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED"
+      - "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED"
+      - "AWS-GR_ENCRYPTED_VOLUMES"
+
+  3:
+    name: "Asset Management"
+    section: "Section 2.2 - Asset Management"
+    type: technical
+    aws_controls:
+      - "AWS Config"
+      - "Systems Manager Inventory"
+      - "Resource Groups"
+      - "Service Catalog"
+    config_rules:
+      - "ec2-instance-managed-by-systems-manager"
+      - "ec2-stopped-instance"
+      - "ec2-volume-inuse-check"
+    guardrails: []
+
+  4:
+    name: "Access Control"
+    section: "Section 2.3 - Access Control"
+    type: technical
+    aws_controls:
+      - "IAM"
+      - "IAM Identity Center"
+      - "MFA"
+      - "Secrets Manager"
+      - "KMS"
+    config_rules:
+      - "iam-policy-no-statements-with-admin-access"
+      - "iam-root-access-key-check"
+      - "mfa-enabled-for-iam-console-access"
+      - "root-account-mfa-enabled"
+      - "iam-user-mfa-enabled"
+      - "access-keys-rotated"
+      - "iam-password-policy"
+      - "secretsmanager-rotation-enabled-check"
+    guardrails:
+      - "AWS-GR_RESTRICT_ROOT_USER"
+      - "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS"
+      - "AWS-GR_RESTRICT_ROOT_USER_ACCESS_KEYS"
+
+  5:
+    name: "Human Resource Security"
+    section: "Section 2.4 - Human Resource Security"
+    type: organizational
+    aws_controls:
+      - "IAM Identity Center for lifecycle management"
+      - "CloudTrail for activity monitoring"
+    config_rules: []
+    guardrails: []
+    notes: >
+      Covers pre-employment screening, security awareness training,
+      role-based access provisioning, and termination procedures.
+
+  6:
+    name: "Information Systems Acquisition and Development"
+    section: "Section 2.5 - IS Acquisition and Development"
+    type: technical
+    aws_controls:
+      - "CodePipeline"
+      - "CodeBuild"
+      - "Inspector for vulnerability scanning"
+      - "ECR image scanning"
+    config_rules:
+      - "ec2-imdsv2-check"
+      - "eks-secrets-encrypted"
+      - "eks-endpoint-no-public-access"
+    guardrails:
+      - "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP"
+      - "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED"
+
+  7:
+    name: "Information Systems Maintenance"
+    section: "Section 2.6 - IS Maintenance"
+    type: technical
+    aws_controls:
+      - "Systems Manager Patch Manager"
+      - "Inspector"
+      - "AWS Backup"
+    config_rules:
+      - "ec2-instance-managed-by-systems-manager"
+      - "db-instance-backup-enabled"
+      - "s3-bucket-versioning-enabled"
+      - "rds-multi-az-support"
+    guardrails: []
+    notes: >
+      Covers patching, change management, backup and recovery procedures.
+      Annual VAPT by external auditors is mandatory.
+
+  8:
+    name: "Mobile and BYOD Security"
+    section: "Sections 2.7-2.8 - Mobile Security and BYOD"
+    type: organizational
+    aws_controls:
+      - "AWS WorkSpaces"
+      - "Device Farm for testing"
+    config_rules: []
+    guardrails: []
+    notes: >
+      Covers mobile device management, BYOD policies, containerization
+      of corporate data on personal devices.
+
+  9:
+    name: "Incident and Problem Management"
+    section: "Section 2.10 - Incident Management"
+    type: technical
+    aws_controls:
+      - "GuardDuty"
+      - "Security Hub"
+      - "EventBridge"
+      - "SNS"
+      - "Lambda"
+      - "Systems Manager Incident Manager"
+    config_rules:
+      - "guardduty-enabled-centralized"
+      - "securityhub-enabled"
+      - "cloudwatch-alarm-action-check"
+    guardrails:
+      - "AWS-GR_CLOUDTRAIL_ENABLED"
+    notes: >
+      Mandatory 6-hour cyber incident reporting to CERT-In with copy to IRDAI.
+      Incident response plan must be tested annually.
+
+  10:
+    name: "Network Security"
+    section: "Section 2.11 - Network Security"
+    type: technical
+    aws_controls:
+      - "VPC"
+      - "Security Groups"
+      - "Network Firewall"
+      - "WAF"
+      - "Shield"
+      - "VPC Flow Logs"
+    config_rules:
+      - "vpc-flow-logs-enabled"
+      - "restricted-ssh"
+      - "ec2-instances-in-vpc"
+      - "ec2-instance-no-public-ip"
+      - "lambda-function-public-access-prohibited"
+    guardrails:
+      - "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP"
+      - "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED"
+      - "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"
+
+  11:
+    name: "Cryptographic Controls"
+    section: "Section 2.12 - Cryptographic Controls"
+    type: technical
+    aws_controls:
+      - "KMS"
+      - "ACM"
+      - "CloudHSM"
+      - "S3 SSE-KMS"
+    config_rules:
+      - "encrypted-volumes"
+      - "rds-storage-encrypted"
+      - "s3-bucket-server-side-encryption-enabled"
+      - "s3-bucket-ssl-requests-only"
+      - "cmk-backing-key-rotation-enabled"
+      - "kms-cmk-not-scheduled-for-deletion"
+    guardrails:
+      - "AWS-GR_ENCRYPTED_VOLUMES"
+      - "AWS-GR_RDS_STORAGE_ENCRYPTED"
+      - "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED"
+
+  12:
+    name: "Audit and Compliance"
+    section: "Chapter 3 - Audit Requirements"
+    type: technical
+    aws_controls:
+      - "CloudTrail"
+      - "CloudWatch Logs"
+      - "S3 access logging"
+      - "Audit Manager"
+      - "Config"
+    config_rules:
+      - "cloudtrail-enabled"
+      - "cloud-trail-log-file-validation-enabled"
+      - "cloud-trail-encryption-enabled"
+      - "cloudwatch-log-group-encrypted"
+      - "s3-bucket-logging-enabled"
+      - "cw-loggroup-retention-period-check"
+    guardrails:
+      - "AWS-GR_CLOUDTRAIL_ENABLED"
+      - "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED"
+      - "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED"
+      - "AWS-GR_LOG_GROUP_ENCRYPTED"
+      - "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"
+    notes: >
+      Audit report must be submitted to IRDAI within 90 days of financial
+      year end or 30 days of audit completion, whichever is earlier.
+      Annual IS audit by CERT-In empanelled auditor is mandatory.
+
+# Declarative assessment checks (auto-generated via --suggest-checks, reviewed and applied).
+
+checks:
+  # Domain 2: Data Classification and Protection
+  - match: "S3::Bucket"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 2
+    risk: high
+    gap: "S3 bucket lacks encryption at rest"
+    remediation: "Enable SSE-KMS or SSE-S3 encryption"
+    reference: "Section 2.1 - Data Classification"
+    confidence: high
+
+  - match: "S3::Bucket"
+    property: "public_access_blocked"
+    expect: true
+    domain: 2
+    risk: high
+    gap: "S3 bucket allows public read access"
+    remediation: "Enable S3 Block Public Access (all 4 settings)"
+    reference: "Section 2.1 - Data Classification"
+    confidence: high
+
+  - match: "RDS::DB"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 2
+    risk: high
+    gap: "RDS instance not encrypted at rest"
+    remediation: "Enable RDS storage encryption"
+    reference: "Section 2.1 - Data Classification"
+    confidence: high
+
+  - match: "DynamoDB::Table"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 2
+    risk: high
+    gap: "DynamoDB table not encrypted with KMS"
+    remediation: "Enable KMS encryption on the table"
+    reference: "Section 2.1 - Data Classification"
+    confidence: high
+
+  # Domain 4: Access Control
+  - match: "IAM::Role"
+    property: "has_admin_policy"
+    expect: false
+    domain: 4
+    risk: critical
+    gap: "IAM role has admin-level access policy"
+    remediation: "Apply least-privilege policies, remove AdministratorAccess"
+    reference: "Section 2.3 - Access Control"
+    confidence: high
+
+  - match: "IAM::Role"
+    property: "mfa_enabled"
+    expect: true
+    domain: 4
+    risk: high
+    gap: "MFA not enabled for IAM console access"
+    remediation: "Enable MFA for all IAM users with console access"
+    reference: "Section 2.3 - Access Control"
+    confidence: high
+
+  - match: "SecretsManager::Secret"
+    property: "rotation_enabled"
+    expect: true
+    domain: 4
+    risk: medium
+    gap: "Secrets Manager secret rotation not configured"
+    remediation: "Enable automatic rotation for secrets"
+    reference: "Section 2.3 - Access Control"
+    confidence: high
+
+  # Domain 6: IS Acquisition and Development
+  - match: "EC2::Instance"
+    property: "imdsv2_required"
+    expect: true
+    domain: 6
+    risk: high
+    gap: "EC2 instance does not enforce IMDSv2"
+    remediation: "Set HttpTokens=required in instance metadata options"
+    reference: "Section 2.5 - IS Acquisition and Development"
+    confidence: high
+
+  - match: "EKS::Cluster"
+    property: "secrets_encrypted"
+    expect: true
+    domain: 6
+    risk: high
+    gap: "EKS cluster secrets not encrypted"
+    remediation: "Enable KMS envelope encryption for Kubernetes secrets"
+    reference: "Section 2.5 - IS Acquisition and Development"
+    confidence: high
+
+  - match: "EKS::Cluster"
+    property: "endpoint_public"
+    expect: false
+    domain: 6
+    risk: high
+    gap: "EKS cluster API endpoint is publicly accessible"
+    remediation: "Restrict API endpoint to private access"
+    reference: "Section 2.5 - IS Acquisition and Development"
+    confidence: high
+
+  # Domain 7: IS Maintenance
+  - match: "RDS::DB"
+    property: "backup_enabled"
+    expect: true
+    domain: 7
+    risk: medium
+    gap: "RDS instance backups not enabled"
+    remediation: "Enable automated backups with appropriate retention"
+    reference: "Section 2.6 - IS Maintenance"
+    confidence: high
+
+  - match: "S3::Bucket"
+    property: "versioning"
+    expect: true
+    domain: 7
+    risk: medium
+    gap: "S3 bucket lacks versioning for data recovery"
+    remediation: "Enable versioning"
+    reference: "Section 2.6 - IS Maintenance"
+    confidence: high
+
+  - match: "RDS::DB"
+    property: "multi_az"
+    expect: true
+    domain: 7
+    risk: medium
+    gap: "RDS instance not configured for Multi-AZ"
+    remediation: "Enable Multi-AZ deployment for high availability"
+    reference: "Section 2.6 - IS Maintenance"
+    confidence: high
+
+  # Domain 9: Incident and Problem Management
+  - match_any: "guardduty"
+    domain: 9
+    risk: critical
+    gap: "GuardDuty not enabled for threat detection"
+    remediation: "Enable Amazon GuardDuty"
+    reference: "Section 2.10 - Incident Management"
+    confidence: high
+
+  - match_any: "securityhub"
+    domain: 9
+    risk: critical
+    gap: "Security Hub not enabled for centralized findings"
+    remediation: "Enable AWS Security Hub"
+    reference: "Section 2.10 - Incident Management"
+    confidence: high
+
+  # Domain 10: Network Security
+  - match_any: "vpc"
+    domain: 10
+    risk: high
+    gap: "VPC Flow Logs not enabled"
+    remediation: "Enable VPC Flow Logs for network traffic visibility"
+    reference: "Section 2.11 - Network Security"
+    confidence: high
+
+  - match: "EC2::SecurityGroup"
+    property: "open_ssh"
+    expect: false
+    domain: 10
+    risk: high
+    gap: "Security group allows SSH from 0.0.0.0/0"
+    remediation: "Restrict SSH access to known IP ranges"
+    reference: "Section 2.11 - Network Security"
+    confidence: high
+
+  - match: "EC2::Instance"
+    property: "public_ip"
+    expect: false
+    domain: 10
+    risk: high
+    gap: "EC2 instance has a public IP address"
+    remediation: "Remove public IP or move to private subnet"
+    reference: "Section 2.11 - Network Security"
+    confidence: high
+
+  - match: "Lambda::Function"
+    property: "public"
+    expect: false
+    domain: 10
+    risk: high
+    gap: "Lambda function has public access"
+    remediation: "Remove resource-based policy that allows public invocation"
+    reference: "Section 2.11 - Network Security"
+    confidence: high
+
+  # Domain 11: Cryptographic Controls
+  - match: "EC2::Instance"
+    property: "ebs_encrypted"
+    expect: true
+    domain: 11
+    risk: high
+    gap: "EBS volumes not encrypted at rest"
+    remediation: "Enable EBS encryption by default or encrypt existing volumes"
+    reference: "Section 2.12 - Cryptographic Controls"
+    confidence: high
+
+  - match: "S3::Bucket"
+    property: "tls_enforced"
+    expect: true
+    domain: 11
+    risk: high
+    gap: "S3 bucket does not enforce TLS for requests"
+    remediation: "Add bucket policy denying non-TLS requests"
+    reference: "Section 2.12 - Cryptographic Controls"
+    confidence: high
+
+  - match: "KMS::Key"
+    property: "rotation_enabled"
+    expect: true
+    domain: 11
+    risk: medium
+    gap: "KMS customer-managed key automatic rotation not enabled"
+    remediation: "Enable automatic key rotation"
+    reference: "Section 2.12 - Cryptographic Controls"
+    confidence: high
+
+  # Domain 12: Audit and Compliance
+  - match_any: "cloudtrail"
+    domain: 12
+    risk: critical
+    gap: "CloudTrail is not enabled"
+    remediation: "Enable CloudTrail in all regions"
+    reference: "Chapter 3 - Audit Requirements"
+    confidence: high
+
+  - match: "CloudTrail::Trail"
+    property: "log_file_validation"
+    expect: true
+    domain: 12
+    risk: high
+    gap: "CloudTrail log file validation is disabled"
+    remediation: "Enable log file validation for tamper detection"
+    reference: "Chapter 3 - Audit Requirements"
+    confidence: high
+
+  - match: "CloudTrail::Trail"
+    property: "encryption"
+    expect: "encrypted"
+    domain: 12
+    risk: high
+    gap: "CloudTrail logs not encrypted with KMS"
+    remediation: "Enable KMS encryption for CloudTrail log files"
+    reference: "Chapter 3 - Audit Requirements"
+    confidence: high
+
+  - match: "S3::Bucket"
+    property: "access_logging"
+    expect: true
+    domain: 12
+    risk: medium
+    gap: "S3 bucket lacks access logging"
+    remediation: "Enable server access logging"
+    reference: "Chapter 3 - Audit Requirements"
+    confidence: high
+
+  - match: "Logs::LogGroup"
+    property: "retention_days"
+    expect_min: 180
+    domain: 12
+    risk: medium
+    gap: "CloudWatch log group retention below 180 days"
+    remediation: "Set retention to at least 180 days per CERT-In and IRDAI requirements"
+    reference: "Chapter 3 - Audit Requirements, CERT-In Direction 4"
+    confidence: high

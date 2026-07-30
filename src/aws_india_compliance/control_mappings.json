@@ -353,6 +353,256 @@
         }
       }
     },
+    "irdai": {
+      "name": "IRDAI Information and Cyber Security Guidelines 2023",
+      "version": "IRDAI/GA&HR/GDL/MISC/88/04/2023 (April 24, 2023)",
+      "source_url": "https://irdai.gov.in",
+      "last_verified": "2026-07-30",
+      "domains": {
+        "1": {
+          "name": "Information Security Governance",
+          "section": "Chapter 1 - Governance Structure",
+          "type": "organizational",
+          "aws_controls": [
+            "AWS Organizations",
+            "Control Tower",
+            "IAM Identity Center",
+            "Audit Manager"
+          ],
+          "config_rules": [],
+          "guardrails": [],
+          "rules_2025_notes": "Requires Board of Directors oversight, Risk Management Committee, and Information Security Risk Management Committee (ISRMC) with CTO, CISO, CRO, CSO, and CHRO. Annual board-approved security policy."
+        },
+        "2": {
+          "name": "Data Classification and Protection",
+          "section": "Section 2.1 - Data Classification",
+          "type": "technical",
+          "aws_controls": [
+            "Macie for data discovery",
+            "S3 Object Tagging",
+            "KMS encryption",
+            "S3 Block Public Access"
+          ],
+          "config_rules": [
+            "s3-bucket-server-side-encryption-enabled",
+            "s3-bucket-public-read-prohibited",
+            "s3-bucket-public-write-prohibited",
+            "rds-storage-encrypted",
+            "dynamodb-table-encrypted-kms"
+          ],
+          "guardrails": [
+            "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED",
+            "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED",
+            "AWS-GR_ENCRYPTED_VOLUMES"
+          ]
+        },
+        "3": {
+          "name": "Asset Management",
+          "section": "Section 2.2 - Asset Management",
+          "type": "technical",
+          "aws_controls": [
+            "AWS Config",
+            "Systems Manager Inventory",
+            "Resource Groups",
+            "Service Catalog"
+          ],
+          "config_rules": [
+            "ec2-instance-managed-by-systems-manager",
+            "ec2-stopped-instance",
+            "ec2-volume-inuse-check"
+          ],
+          "guardrails": []
+        },
+        "4": {
+          "name": "Access Control",
+          "section": "Section 2.3 - Access Control",
+          "type": "technical",
+          "aws_controls": [
+            "IAM",
+            "IAM Identity Center",
+            "MFA",
+            "Secrets Manager",
+            "KMS"
+          ],
+          "config_rules": [
+            "iam-policy-no-statements-with-admin-access",
+            "iam-root-access-key-check",
+            "mfa-enabled-for-iam-console-access",
+            "root-account-mfa-enabled",
+            "iam-user-mfa-enabled",
+            "access-keys-rotated",
+            "iam-password-policy",
+            "secretsmanager-rotation-enabled-check"
+          ],
+          "guardrails": [
+            "AWS-GR_RESTRICT_ROOT_USER",
+            "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS",
+            "AWS-GR_RESTRICT_ROOT_USER_ACCESS_KEYS"
+          ]
+        },
+        "5": {
+          "name": "Human Resource Security",
+          "section": "Section 2.4 - Human Resource Security",
+          "type": "organizational",
+          "aws_controls": [
+            "IAM Identity Center for lifecycle management",
+            "CloudTrail for activity monitoring"
+          ],
+          "config_rules": [],
+          "guardrails": [],
+          "rules_2025_notes": "Covers pre-employment screening, security awareness training, role-based access provisioning, and termination procedures."
+        },
+        "6": {
+          "name": "Information Systems Acquisition and Development",
+          "section": "Section 2.5 - IS Acquisition and Development",
+          "type": "technical",
+          "aws_controls": [
+            "CodePipeline",
+            "CodeBuild",
+            "Inspector for vulnerability scanning",
+            "ECR image scanning"
+          ],
+          "config_rules": [
+            "ec2-imdsv2-check",
+            "eks-secrets-encrypted",
+            "eks-endpoint-no-public-access"
+          ],
+          "guardrails": [
+            "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP",
+            "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED"
+          ]
+        },
+        "7": {
+          "name": "Information Systems Maintenance",
+          "section": "Section 2.6 - IS Maintenance",
+          "type": "technical",
+          "aws_controls": [
+            "Systems Manager Patch Manager",
+            "Inspector",
+            "AWS Backup"
+          ],
+          "config_rules": [
+            "ec2-instance-managed-by-systems-manager",
+            "db-instance-backup-enabled",
+            "s3-bucket-versioning-enabled",
+            "rds-multi-az-support"
+          ],
+          "guardrails": [],
+          "rules_2025_notes": "Covers patching, change management, backup and recovery procedures. Annual VAPT by external auditors is mandatory."
+        },
+        "8": {
+          "name": "Mobile and BYOD Security",
+          "section": "Sections 2.7-2.8 - Mobile Security and BYOD",
+          "type": "organizational",
+          "aws_controls": [
+            "AWS WorkSpaces",
+            "Device Farm for testing"
+          ],
+          "config_rules": [],
+          "guardrails": [],
+          "rules_2025_notes": "Covers mobile device management, BYOD policies, containerization of corporate data on personal devices."
+        },
+        "9": {
+          "name": "Incident and Problem Management",
+          "section": "Section 2.10 - Incident Management",
+          "type": "technical",
+          "aws_controls": [
+            "GuardDuty",
+            "Security Hub",
+            "EventBridge",
+            "SNS",
+            "Lambda",
+            "Systems Manager Incident Manager"
+          ],
+          "config_rules": [
+            "guardduty-enabled-centralized",
+            "securityhub-enabled",
+            "cloudwatch-alarm-action-check"
+          ],
+          "guardrails": [
+            "AWS-GR_CLOUDTRAIL_ENABLED"
+          ],
+          "rules_2025_notes": "Mandatory 6-hour cyber incident reporting to CERT-In with copy to IRDAI. Incident response plan must be tested annually."
+        },
+        "10": {
+          "name": "Network Security",
+          "section": "Section 2.11 - Network Security",
+          "type": "technical",
+          "aws_controls": [
+            "VPC",
+            "Security Groups",
+            "Network Firewall",
+            "WAF",
+            "Shield",
+            "VPC Flow Logs"
+          ],
+          "config_rules": [
+            "vpc-flow-logs-enabled",
+            "restricted-ssh",
+            "ec2-instances-in-vpc",
+            "ec2-instance-no-public-ip",
+            "lambda-function-public-access-prohibited"
+          ],
+          "guardrails": [
+            "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP",
+            "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED",
+            "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"
+          ]
+        },
+        "11": {
+          "name": "Cryptographic Controls",
+          "section": "Section 2.12 - Cryptographic Controls",
+          "type": "technical",
+          "aws_controls": [
+            "KMS",
+            "ACM",
+            "CloudHSM",
+            "S3 SSE-KMS"
+          ],
+          "config_rules": [
+            "encrypted-volumes",
+            "rds-storage-encrypted",
+            "s3-bucket-server-side-encryption-enabled",
+            "s3-bucket-ssl-requests-only",
+            "cmk-backing-key-rotation-enabled",
+            "kms-cmk-not-scheduled-for-deletion"
+          ],
+          "guardrails": [
+            "AWS-GR_ENCRYPTED_VOLUMES",
+            "AWS-GR_RDS_STORAGE_ENCRYPTED",
+            "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED"
+          ]
+        },
+        "12": {
+          "name": "Audit and Compliance",
+          "section": "Chapter 3 - Audit Requirements",
+          "type": "technical",
+          "aws_controls": [
+            "CloudTrail",
+            "CloudWatch Logs",
+            "S3 access logging",
+            "Audit Manager",
+            "Config"
+          ],
+          "config_rules": [
+            "cloudtrail-enabled",
+            "cloud-trail-log-file-validation-enabled",
+            "cloud-trail-encryption-enabled",
+            "cloudwatch-log-group-encrypted",
+            "s3-bucket-logging-enabled",
+            "cw-loggroup-retention-period-check"
+          ],
+          "guardrails": [
+            "AWS-GR_CLOUDTRAIL_ENABLED",
+            "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED",
+            "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED",
+            "AWS-GR_LOG_GROUP_ENCRYPTED",
+            "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"
+          ],
+          "rules_2025_notes": "Audit report must be submitted to IRDAI within 90 days of financial year end or 30 days of audit completion, whichever is earlier. Annual IS audit by CERT-In empanelled auditor is mandatory."
+        }
+      }
+    },
     "rbi": {
       "name": "RBI Master Direction on IT Governance, Risk, Controls and Assurance Practices",
       "version": "DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023)",
@@ -642,6 +892,16 @@
       {
         "url": "https://dpdpact.in",
         "type": "regulatory_text"
+      }
+    ],
+    "irdai": [
+      {
+        "url": "https://irdai.gov.in",
+        "type": "regulatory_text"
+      },
+      {
+        "url": "https://irdai.gov.in",
+        "type": "circulars"
       }
     ],
     "rbi": [
