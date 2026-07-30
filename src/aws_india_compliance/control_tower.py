@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .domains import DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
+from .domains import CERTIN_DOMAINS, DPDP_DOMAINS, RBI_DOMAINS, SEBI_DOMAINS
 
 _logger = logging.getLogger(__name__)
 
@@ -25,18 +25,18 @@ CT_CONTROL_MAP: dict[str, dict] = {
     "AWS-GR_S3_BUCKET_PUBLIC_READ_PROHIBITED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 buckets must not allow public read"},
     "AWS-GR_S3_BUCKET_PUBLIC_WRITE_PROHIBITED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 buckets must not allow public write"},
     "AWS-GR_AUDIT_BUCKET_ENCRYPTION_ENABLED": {"dpdp": [6], "rbi": [7], "sebi": [3], "desc": "Audit bucket must be encrypted"},
-    "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [4], "desc": "Audit bucket logging enabled"},
-    "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY": {"dpdp": [7], "rbi": [7], "sebi": [6], "desc": "Audit bucket has retention policy"},
-    "AWS-GR_LOG_GROUP_ENCRYPTED": {"dpdp": [5, 6], "rbi": [7], "sebi": [3, 4], "desc": "CloudWatch log groups encrypted"},
-    "AWS-GR_CLOUDTRAIL_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "desc": "CloudTrail must be enabled"},
-    "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2], "desc": "CloudTrail log validation enabled"},
+    "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [4], "certin": [1, 4], "desc": "Audit bucket logging enabled"},
+    "AWS-GR_AUDIT_BUCKET_RETENTION_POLICY": {"dpdp": [7], "rbi": [7], "sebi": [6], "certin": [2], "desc": "Audit bucket has retention policy"},
+    "AWS-GR_LOG_GROUP_ENCRYPTED": {"dpdp": [5, 6], "rbi": [7], "sebi": [3, 4], "certin": [2], "desc": "CloudWatch log groups encrypted"},
+    "AWS-GR_CLOUDTRAIL_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "certin": [1, 4], "desc": "CloudTrail must be enabled"},
+    "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED": {"dpdp": [5], "rbi": [7], "sebi": [2], "certin": [1], "desc": "CloudTrail log validation enabled"},
     "AWS-GR_REGION_DENY": {"dpdp": [8], "rbi": [], "sebi": [1], "desc": "Deny access to non-approved regions"},
     "AWS-GR_MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "MFA required for console access"},
     "AWS-GR_IAM_USER_MFA_ENABLED": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "IAM users must have MFA"},
     "AWS-GR_DISALLOW_CROSS_REGION_NETWORKING": {"dpdp": [8], "rbi": [], "sebi": [1], "desc": "Restrict cross-region networking"},
     "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "Lambda must not be public"},
     "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "EC2 must not have public IP"},
-    "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "desc": "CloudTrail enabled in all regions"},
+    "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON": {"dpdp": [5], "rbi": [7], "sebi": [2, 4], "certin": [1, 4], "desc": "CloudTrail enabled in all regions"},
     "AWS-GR_S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS_PERIODIC": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "S3 account-level public access blocked"},
     "AWS-GR_EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK": {"dpdp": [6], "rbi": [4], "sebi": [3], "desc": "EBS snapshots not public"},
     "AWS-GR_SAGEMAKER_NOTEBOOK_NO_DIRECT_INTERNET_ACCESS": {"dpdp": [6], "rbi": [5], "sebi": [3], "desc": "SageMaker no direct internet"},
@@ -68,6 +68,12 @@ RECOMMENDED_SEBI: dict[int, list[str]] = {
         "AWS-GR_EC2_INSTANCE_NO_PUBLIC_IP", "AWS-GR_LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED", "AWS-GR_SUBNET_AUTO_ASSIGN_PUBLIC_IP_DISABLED"],
     4: ["AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_LOG_GROUP_ENCRYPTED", "AWS-GR_CLOUDTRAIL_ENABLED"],
     6: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY"],
+}
+
+RECOMMENDED_CERTIN: dict[int, list[str]] = {
+    1: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_CLOUDTRAIL_VALIDATION_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON"],
+    2: ["AWS-GR_AUDIT_BUCKET_RETENTION_POLICY", "AWS-GR_LOG_GROUP_ENCRYPTED"],
+    4: ["AWS-GR_CLOUDTRAIL_ENABLED", "AWS-GR_AUDIT_BUCKET_LOGGING_ENABLED", "AWS-GR_ENSURE_CLOUDTRAIL_ENABLED_ON"],
 }
 
 
@@ -159,12 +165,14 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
     dpdp_covered: set[int] = set()
     rbi_covered: set[int] = set()
     sebi_covered: set[int] = set()
+    certin_covered: set[int] = set()
 
     for ctrl_id in enabled_ids:
         mapping = CT_CONTROL_MAP.get(ctrl_id, {})
         dpdp_covered.update(mapping.get("dpdp", []))
         rbi_covered.update(mapping.get("rbi", []))
         sebi_covered.update(mapping.get("sebi", []))
+        certin_covered.update(mapping.get("certin", []))
 
     # DPDP gaps
     for domain_num, rec_controls in RECOMMENDED_DPDP.items():
@@ -177,12 +185,16 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
                     "framework": "dpdp", "domain": domain_num,
                     "domain_name": DPDP_DOMAINS.get(domain_num, ""),
                     "priority": "high" if domain_num in (5, 6) else "medium",
+                    "confidence": "high",
+                    "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
                 })
             gaps.append({
                 "framework": "dpdp", "domain": domain_num,
                 "domain_name": DPDP_DOMAINS.get(domain_num, ""),
                 "gap": f"Missing {len(missing)} Control Tower controls for {DPDP_DOMAINS.get(domain_num, '')}",
                 "missing_controls": missing,
+                "confidence": "high",
+                "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
             })
 
     # RBI gaps
@@ -197,12 +209,16 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
                         "framework": "rbi", "domain": domain_num,
                         "domain_name": RBI_DOMAINS.get(domain_num, ""),
                         "priority": "high" if domain_num in (4, 5) else "medium",
+                        "confidence": "high",
+                        "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
                     })
                 gaps.append({
                     "framework": "rbi", "domain": domain_num,
                     "domain_name": RBI_DOMAINS.get(domain_num, ""),
                     "gap": f"Missing {len(missing)} Control Tower controls for {RBI_DOMAINS.get(domain_num, '')}",
                     "missing_controls": missing,
+                    "confidence": "high",
+                    "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
                 })
 
     # SEBI gaps
@@ -217,27 +233,88 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
                         "framework": "sebi", "domain": domain_num,
                         "domain_name": SEBI_DOMAINS.get(domain_num, ""),
                         "priority": "high" if domain_num in (3, 4) else "medium",
+                        "confidence": "high",
+                        "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
                     })
                 gaps.append({
                     "framework": "sebi", "domain": domain_num,
                     "domain_name": SEBI_DOMAINS.get(domain_num, ""),
                     "gap": f"Missing {len(missing)} Control Tower controls for {SEBI_DOMAINS.get(domain_num, '')}",
                     "missing_controls": missing,
+                    "confidence": "high",
+                    "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
                 })
 
     # Landing zone checks
     lz = ct_data.get("landing_zone")
     if not lz:
         gaps.append({"framework": "dpdp", "domain": 6, "domain_name": DPDP_DOMAINS[6],
-                      "gap": "No Control Tower landing zone detected", "missing_controls": []})
+                      "gap": "No Control Tower landing zone detected", "missing_controls": [],
+                      "confidence": "high",
+                      "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain"})
     elif lz.get("drift_status") == "DRIFTED":
         gaps.append({"framework": "dpdp", "domain": 6, "domain_name": DPDP_DOMAINS[6],
-                      "gap": "Control Tower landing zone has drifted from baseline", "missing_controls": []})
+                      "gap": "Control Tower landing zone has drifted from baseline", "missing_controls": [],
+                      "confidence": "high",
+                      "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain"})
+
+    # CERT-In gaps
+    for domain_num, rec_controls in RECOMMENDED_CERTIN.items():
+        missing = [c for c in rec_controls if c not in enabled_ids]
+        if missing:
+            for ctrl_id in missing:
+                m = CT_CONTROL_MAP.get(ctrl_id, {})
+                recommendations.append({
+                    "control_id": ctrl_id, "description": m.get("desc", ctrl_id),
+                    "framework": "certin", "domain": domain_num,
+                    "domain_name": CERTIN_DOMAINS.get(domain_num, ""),
+                    "priority": "high" if domain_num in (1, 2) else "medium",
+                    "confidence": "high",
+                    "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
+                })
+            gaps.append({
+                "framework": "certin", "domain": domain_num,
+                "domain_name": CERTIN_DOMAINS.get(domain_num, ""),
+                "gap": f"Missing {len(missing)} Control Tower controls for {CERTIN_DOMAINS.get(domain_num, '')}",
+                "missing_controls": missing,
+                "confidence": "high",
+                "confidence_rationale": "Direct mapping: Control Tower guardrail to compliance domain",
+            })
 
     # Deduplicate recommendations
     seen: set[str] = set()
     unique_recs = [r for r in recommendations if r["control_id"] not in seen and not seen.add(r["control_id"])]  # type: ignore[func-returns-value]
 
+    # Per-OU grouping
+    per_ou: dict[str, dict[str, Any]] = {}
+    for ctrl in ct_data.get("enabled_controls", []):
+        ou_name = ctrl.get("target_ou", "Unknown")
+        ou_entry = per_ou.setdefault(ou_name, {
+            "enabled_count": 0,
+            "dpdp_covered": set(),
+            "rbi_covered": set(),
+            "sebi_covered": set(),
+            "certin_covered": set(),
+        })
+        ou_entry["enabled_count"] += 1
+        mapping = CT_CONTROL_MAP.get(ctrl.get("control_id", ""), {})
+        ou_entry["dpdp_covered"].update(mapping.get("dpdp", []))
+        ou_entry["rbi_covered"].update(mapping.get("rbi", []))
+        ou_entry["sebi_covered"].update(mapping.get("sebi", []))
+        ou_entry["certin_covered"].update(mapping.get("certin", []))
+
+    # Convert sets to counts for JSON serialization
+    per_ou_result: dict[str, dict[str, Any]] = {}
+    for ou_name, data in per_ou.items():
+        per_ou_result[ou_name] = {
+            "enabled_controls": data["enabled_count"],
+            "dpdp_domains_covered": len(data["dpdp_covered"]),
+            "rbi_domains_covered": len(data["rbi_covered"]) if is_rbi else None,
+            "sebi_domains_covered": len(data["sebi_covered"]) if is_sebi else None,
+            "certin_domains_covered": len(data["certin_covered"]),
+        }
+
+    certin_total = len(CERTIN_DOMAINS)
     return {
         "landing_zone": lz,
         "total_ous": len(ct_data.get("ous", [])),
@@ -247,4 +324,6 @@ def assess_control_tower(ct_data: dict, is_sdf: bool = False, is_rbi: bool = Fal
         "dpdp_posture": {"covered_domains": len(dpdp_covered), "total": 10, "score": round(len(dpdp_covered) / 10 * 100, 1)},
         "rbi_posture": {"covered_domains": len(rbi_covered), "total": 7, "score": round(len(rbi_covered) / 7 * 100, 1)} if is_rbi else None,
         "sebi_posture": {"covered_domains": len(sebi_covered), "total": 6, "score": round(len(sebi_covered) / 6 * 100, 1)} if is_sebi else None,
+        "certin_posture": {"covered_domains": len(certin_covered), "total": certin_total, "score": round(len(certin_covered) / certin_total * 100, 1)},
+        "per_ou": per_ou_result,
     }

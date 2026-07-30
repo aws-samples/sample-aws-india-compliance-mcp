@@ -47,6 +47,27 @@ _SOURCES: dict[str, list[str]] = {
     ],
 }
 
+# Circular listing pages for new-publication detection
+_CIRCULAR_SOURCES: dict[str, list[str]] = {
+    "rbi": [
+        "https://rbi.org.in/Scripts/BS_CircularIndexDisplay.aspx",
+    ],
+    "sebi": [
+        "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=2&smid=0",
+    ],
+}
+
+# Keywords to filter relevant circulars
+_CIRCULAR_KEYWORDS: dict[str, list[str]] = {
+    "dpdp": ["data protection", "personal data", "dpdp", "privacy", "consent", "data principal",
+             "data fiduciary", "breach notification"],
+    "rbi": ["it governance", "cyber security", "information security", "it risk",
+            "outsourcing", "cloud", "data localization", "digital payment",
+            "master direction", "csite", "information technology"],
+    "sebi": ["cyber security", "cyber resilience", "cscrf", "cloud framework",
+             "information security", "soc", "incident", "data protection"],
+}
+
 # Cache: URL -> (text, timestamp)
 _CACHE: dict[str, tuple[str, float]] = {}
 _CACHE_TTL: int = int(os.environ.get("REGULATORY_CACHE_TTL", "0"))
@@ -304,3 +325,185 @@ def search_live(query: str, framework: str = "", top_k: int = 5) -> list[dict[st
 
     results.sort(key=lambda x: -x["score"])
     return results[:top_k]
+
+
+# ---- Regulatory monitoring ----
+
+def _hash_content(text: str) -> str:
+    """Return SHA-256 hex digest of normalized text content."""
+    import hashlib
+    # Normalize: lowercase, collapse whitespace, strip
+    normalized = re.sub(r"\s+", " ", text.lower().strip())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _extract_dates_from_text(text: str) -> list[str]:
+    """Extract date-like strings from text in common Indian regulatory formats.
+
+    Matches patterns like:
+    - DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY
+    - Month DD, YYYY (e.g., August 20, 2024)
+    - YYYY-MM-DD (ISO format)
+    """
+    patterns = [
+        r"\b(\d{1,2}[./\-]\d{1,2}[./\-]\d{4})\b",
+        r"\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})\b",
+        r"\b(\d{4}-\d{2}-\d{2})\b",
+    ]
+    dates: list[str] = []
+    for pat in patterns:
+        dates.extend(re.findall(pat, text, re.IGNORECASE))
+    return dates
+
+
+def _parse_date_flexible(date_str: str) -> "date | None":
+    """Try multiple date formats and return a date object or None."""
+    from datetime import datetime, date
+    formats = [
+        "%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%d-%m-%Y",
+        "%B %d, %Y", "%B %d %Y",
+    ]
+    cleaned = date_str.strip().replace(",", "")
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def monitor_source_changes() -> dict[str, Any]:
+    """Fetch regulatory source pages, hash content, and detect changes.
+
+    Compares current page content hashes against stored hashes in the
+    manifest. Reports which frameworks have changed content since last
+    verification. Also scans circular listing pages for new publications
+    matching compliance keywords that are dated after last_verified.
+
+    Returns:
+        Dict with per-framework status: hash_changed, current_hash,
+        stored_hash, fetch_success, and any detected new circulars.
+    """
+    try:
+        manifest = load_manifest()
+    except (OSError, ValueError):
+        return {"error": "Could not load manifest"}
+
+    frameworks = manifest.get("frameworks", {})
+    results: dict[str, Any] = {}
+
+    for fw_key, fw_data in frameworks.items():
+        fw_result: dict[str, Any] = {
+            "name": fw_data.get("name", fw_key),
+            "last_verified": fw_data.get("last_verified", ""),
+            "source_url": fw_data.get("source_url", ""),
+            "fetch_success": False,
+            "hash_changed": False,
+            "current_hash": "",
+            "stored_hash": fw_data.get("content_hash", ""),
+            "new_circulars": [],
+        }
+
+        # Fetch and hash the primary source page
+        urls = _SOURCES.get(fw_key, [])
+        combined_text = ""
+        for url in urls:
+            text = _fetch_text(url)
+            if text:
+                combined_text += text
+                fw_result["fetch_success"] = True
+
+        if combined_text:
+            current_hash = _hash_content(combined_text)
+            fw_result["current_hash"] = current_hash
+            stored_hash = fw_data.get("content_hash", "")
+            if stored_hash and current_hash != stored_hash:
+                fw_result["hash_changed"] = True
+            elif not stored_hash:
+                fw_result["hash_changed"] = None  # No baseline to compare
+
+        # Check circular listing pages for new publications
+        last_verified_str = fw_data.get("last_verified", "")
+        last_verified_date = _parse_date_flexible(last_verified_str) if last_verified_str else None
+
+        circular_urls = _CIRCULAR_SOURCES.get(fw_key, [])
+        keywords = _CIRCULAR_KEYWORDS.get(fw_key, [])
+
+        for url in circular_urls:
+            text = _fetch_text(url)
+            if not text:
+                continue
+
+            # Split into lines and look for date + keyword matches
+            lines = [line.strip() for line in text.split("\n") if len(line.strip()) > 10]
+            for line in lines:
+                line_lower = line.lower()
+                if not any(kw in line_lower for kw in keywords):
+                    continue
+
+                # Extract dates from this line
+                line_dates = _extract_dates_from_text(line)
+                for d_str in line_dates:
+                    d = _parse_date_flexible(d_str)
+                    if d and last_verified_date and d > last_verified_date:
+                        fw_result["new_circulars"].append({
+                            "text": line[:300],
+                            "detected_date": d.isoformat(),
+                            "source_url": url,
+                        })
+                        break  # One match per line is enough
+
+        # Deduplicate circulars by text
+        seen_texts: set[str] = set()
+        unique_circulars = []
+        for c in fw_result["new_circulars"]:
+            key = c["text"][:100]
+            if key not in seen_texts:
+                seen_texts.add(key)
+                unique_circulars.append(c)
+        fw_result["new_circulars"] = unique_circulars[:10]  # Cap at 10
+
+        results[fw_key] = fw_result
+
+    return results
+
+
+def update_content_hashes() -> dict[str, str]:
+    """Fetch current content from all sources and store hashes in the manifest.
+
+    Call this after verifying mappings are up to date to establish
+    a new baseline for change detection.
+
+    Returns:
+        Dict of framework -> new hash (or error message).
+    """
+    from .domains import save_manifest
+
+    try:
+        manifest = load_manifest()
+    except (OSError, ValueError):
+        return {"error": "Could not load manifest"}
+
+    results: dict[str, str] = {}
+
+    for fw_key in manifest.get("frameworks", {}):
+        urls = _SOURCES.get(fw_key, [])
+        combined_text = ""
+        for url in urls:
+            text = _fetch_text(url)
+            if text:
+                combined_text += text
+
+        if combined_text:
+            h = _hash_content(combined_text)
+            manifest["frameworks"][fw_key]["content_hash"] = h
+            results[fw_key] = h
+        else:
+            results[fw_key] = "fetch_failed"
+
+    try:
+        save_manifest(manifest)
+    except OSError as e:
+        return {"error": f"Could not save manifest: {e}", **results}
+
+    return results

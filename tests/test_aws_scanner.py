@@ -39,8 +39,10 @@ def test_config_to_component_lambda():
 
 def test_scan_via_config_mocked():
     with patch("aws_india_compliance.aws_scanner.scan_via_config") as mock:
-        mock.return_value = [
-            {"name": "b", "type": "AWS::S3::Bucket", "category": "storage", "properties": {}, "region": "us-east-1", "account_id": "123"},
-        ]
-        result = mock("us-east-1")
-        assert len(result) == 1
+        mock.return_value = (
+            [{"name": "b", "type": "AWS::S3::Bucket", "category": "storage", "properties": {}, "region": "us-east-1", "account_id": "123"}],
+            "",
+        )
+        components, aggregator = mock("us-east-1")
+        assert len(components) == 1
+        assert aggregator == ""

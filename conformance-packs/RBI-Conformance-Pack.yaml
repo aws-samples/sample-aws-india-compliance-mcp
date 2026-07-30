@@ -1,0 +1,321 @@
+################################################################################
+# AWS Config Conformance Pack: RBI Master Direction on IT Governance, Risk, Controls and Assurance
+#
+# Framework: DoS.CO.CSITE.SEC.3/31.01.015/2023-24 (April 7, 2023)
+# Source: https://rbi.org.in/Scripts/BS_ViewMasterDirections.aspx
+# Generated from: aws-india-compliance MCP server v1.2.0
+#
+# Domains covered: 2, 4, 5, 6, 7
+# Total rules: 26
+#
+# Deployment:
+#   aws configservice put-conformance-pack \
+#     --conformance-pack-name RBI-Compliance-Conformance-Pack \
+#     --template-body file://<filename>.yaml
+#
+# All rule identifiers validated against AWS documentation.
+# Generated: 2026-05-16
+################################################################################
+
+Parameters:
+  AccessKeysRotatedParammaxAccessKeyAge:
+    Default: "90"
+    Type: String
+  IamPasswordPolicyParamMinimumPasswordLength:
+    Default: "14"
+    Type: String
+
+Resources:
+
+  ############################################################################
+  # DOMAIN 2: IT Infrastructure and Service Management
+  # Chapter II
+  ############################################################################
+
+  Ec2InstanceManagedBySystemsManager:
+    Properties:
+      ConfigRuleName: rbi-ec2-instance-managed-by-systems-manager
+      Description: >-
+        [RBI Domain 2 - IT Infrastructure and Service Management] AWS Config rule: ec2-instance-managed-by-systems-manager. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter II.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_INSTANCE_MANAGED_BY_SSM
+    Type: AWS::Config::ConfigRule
+
+  Ec2StoppedInstance:
+    Properties:
+      ConfigRuleName: rbi-ec2-stopped-instance
+      Description: >-
+        [RBI Domain 2 - IT Infrastructure and Service Management] AWS Config rule: ec2-stopped-instance. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter II.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_STOPPED_INSTANCE
+    Type: AWS::Config::ConfigRule
+
+  Ec2VolumeInuseCheck:
+    Properties:
+      ConfigRuleName: rbi-ec2-volume-inuse-check
+      Description: >-
+        [RBI Domain 2 - IT Infrastructure and Service Management] AWS Config rule: ec2-volume-inuse-check. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter II.
+      Source:
+        Owner: AWS
+        SourceIdentifier: EC2_VOLUME_INUSE_CHECK
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 4: Information Security
+  # Chapter IV
+  ############################################################################
+
+  AccessKeysRotated:
+    Properties:
+      ConfigRuleName: rbi-access-keys-rotated
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: access-keys-rotated. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      InputParameters:
+        maxAccessKeyAge: !Ref AccessKeysRotatedParammaxAccessKeyAge
+      Source:
+        Owner: AWS
+        SourceIdentifier: ACCESS_KEYS_ROTATED
+    Type: AWS::Config::ConfigRule
+
+  IamPasswordPolicy:
+    Properties:
+      ConfigRuleName: rbi-iam-password-policy
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: iam-password-policy. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      InputParameters:
+        MinimumPasswordLength: !Ref IamPasswordPolicyParamMinimumPasswordLength
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_PASSWORD_POLICY
+    Type: AWS::Config::ConfigRule
+
+  IamPolicyNoStatementsWithAdminAccess:
+    Properties:
+      ConfigRuleName: rbi-iam-policy-no-statements-with-admin-access
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: iam-policy-no-statements-with-admin-access. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS
+    Type: AWS::Config::ConfigRule
+
+  IamRootAccessKeyCheck:
+    Properties:
+      ConfigRuleName: rbi-iam-root-access-key-check
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: iam-root-access-key-check. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_ROOT_ACCESS_KEY_CHECK
+    Type: AWS::Config::ConfigRule
+
+  IamUserMfaEnabled:
+    Properties:
+      ConfigRuleName: rbi-iam-user-mfa-enabled
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: iam-user-mfa-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: IAM_USER_MFA_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  EncryptedVolumes:
+    Properties:
+      ConfigRuleName: rbi-encrypted-volumes
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: encrypted-volumes. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: ENCRYPTED_VOLUMES
+    Type: AWS::Config::ConfigRule
+
+  RdsStorageEncrypted:
+    Properties:
+      ConfigRuleName: rbi-rds-storage-encrypted
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: rds-storage-encrypted. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_STORAGE_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketServerSideEncryptionEnabled:
+    Properties:
+      ConfigRuleName: rbi-s3-bucket-server-side-encryption-enabled
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: s3-bucket-server-side-encryption-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketPublicReadProhibited:
+    Properties:
+      ConfigRuleName: rbi-s3-bucket-public-read-prohibited
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: s3-bucket-public-read-prohibited. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+    Type: AWS::Config::ConfigRule
+
+  KmsCmkNotScheduledForDeletion:
+    Properties:
+      ConfigRuleName: rbi-kms-cmk-not-scheduled-for-deletion
+      Description: >-
+        [RBI Domain 4 - Information Security] AWS Config rule: kms-cmk-not-scheduled-for-deletion. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter IV.
+      Source:
+        Owner: AWS
+        SourceIdentifier: KMS_CMK_NOT_SCHEDULED_FOR_DELETION
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 5: Cyber Security
+  # Chapter V
+  ############################################################################
+
+  GuarddutyEnabledCentralized:
+    Properties:
+      ConfigRuleName: rbi-guardduty-enabled-centralized
+      Description: >-
+        [RBI Domain 5 - Cyber Security] AWS Config rule: guardduty-enabled-centralized. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter V.
+      Source:
+        Owner: AWS
+        SourceIdentifier: GUARDDUTY_ENABLED_CENTRALIZED
+    Type: AWS::Config::ConfigRule
+
+  VpcFlowLogsEnabled:
+    Properties:
+      ConfigRuleName: rbi-vpc-flow-logs-enabled
+      Description: >-
+        [RBI Domain 5 - Cyber Security] AWS Config rule: vpc-flow-logs-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter V.
+      Source:
+        Owner: AWS
+        SourceIdentifier: VPC_FLOW_LOGS_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  RestrictedSsh:
+    Properties:
+      ConfigRuleName: rbi-restricted-ssh
+      Description: >-
+        [RBI Domain 5 - Cyber Security] AWS Config rule: restricted-ssh. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter V.
+      Source:
+        Owner: AWS
+        SourceIdentifier: INCOMING_SSH_DISABLED
+    Type: AWS::Config::ConfigRule
+
+  Ec2InstancesInVpc:
+    Properties:
+      ConfigRuleName: rbi-ec2-instances-in-vpc
+      Description: >-
+        [RBI Domain 5 - Cyber Security] AWS Config rule: ec2-instances-in-vpc. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter V.
+      Source:
+        Owner: AWS
+        SourceIdentifier: INSTANCES_IN_VPC
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 6: Business Continuity and Disaster Recovery
+  # Chapter VI
+  ############################################################################
+
+  DbInstanceBackupEnabled:
+    Properties:
+      ConfigRuleName: rbi-db-instance-backup-enabled
+      Description: >-
+        [RBI Domain 6 - Business Continuity and Disaster Recovery] AWS Config rule: db-instance-backup-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VI.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DB_INSTANCE_BACKUP_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  DynamodbPitrEnabled:
+    Properties:
+      ConfigRuleName: rbi-dynamodb-pitr-enabled
+      Description: >-
+        [RBI Domain 6 - Business Continuity and Disaster Recovery] AWS Config rule: dynamodb-pitr-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VI.
+      Source:
+        Owner: AWS
+        SourceIdentifier: DYNAMODB_PITR_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketVersioningEnabled:
+    Properties:
+      ConfigRuleName: rbi-s3-bucket-versioning-enabled
+      Description: >-
+        [RBI Domain 6 - Business Continuity and Disaster Recovery] AWS Config rule: s3-bucket-versioning-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VI.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_VERSIONING_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  RdsMultiAzSupport:
+    Properties:
+      ConfigRuleName: rbi-rds-multi-az-support
+      Description: >-
+        [RBI Domain 6 - Business Continuity and Disaster Recovery] AWS Config rule: rds-multi-az-support. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VI.
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_MULTI_AZ_SUPPORT
+    Type: AWS::Config::ConfigRule
+
+
+  ############################################################################
+  # DOMAIN 7: Information Systems Audit
+  # Chapter VII
+  ############################################################################
+
+  CloudtrailEnabled:
+    Properties:
+      ConfigRuleName: rbi-cloudtrail-enabled
+      Description: >-
+        [RBI Domain 7 - Information Systems Audit] AWS Config rule: cloudtrail-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VII.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailLogFileValidationEnabled:
+    Properties:
+      ConfigRuleName: rbi-cloud-trail-log-file-validation-enabled
+      Description: >-
+        [RBI Domain 7 - Information Systems Audit] AWS Config rule: cloud-trail-log-file-validation-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VII.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_LOG_FILE_VALIDATION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudTrailEncryptionEnabled:
+    Properties:
+      ConfigRuleName: rbi-cloud-trail-encryption-enabled
+      Description: >-
+        [RBI Domain 7 - Information Systems Audit] AWS Config rule: cloud-trail-encryption-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VII.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENCRYPTION_ENABLED
+    Type: AWS::Config::ConfigRule
+
+  CloudwatchLogGroupEncrypted:
+    Properties:
+      ConfigRuleName: rbi-cloudwatch-log-group-encrypted
+      Description: >-
+        [RBI Domain 7 - Information Systems Audit] AWS Config rule: cloudwatch-log-group-encrypted. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VII.
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUDWATCH_LOG_GROUP_ENCRYPTED
+    Type: AWS::Config::ConfigRule
+
+  S3BucketLoggingEnabled:
+    Properties:
+      ConfigRuleName: rbi-s3-bucket-logging-enabled
+      Description: >-
+        [RBI Domain 7 - Information Systems Audit] AWS Config rule: s3-bucket-logging-enabled. Mapped to RBI Master Direction on IT Governance, Risk, Controls and Assurance Chapter VII.
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_LOGGING_ENABLED
+    Type: AWS::Config::ConfigRule
