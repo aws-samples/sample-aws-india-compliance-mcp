@@ -1,6 +1,6 @@
 [project]
 name = "aws-india-compliance"
-version = "0.4.0"
+version = "0.4.1"
 description = "MCP server to assess AWS infrastructure against regulatory compliance frameworks"
 requires-python = ">=3.10"
 license = "Apache-2.0"
