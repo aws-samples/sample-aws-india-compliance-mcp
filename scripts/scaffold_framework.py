@@ -370,8 +370,38 @@ RULE_TO_CHECK: dict[str, dict] = {
 }
 
 
-def generate_skeleton(fw_id: str, name: str, source_url: str) -> str:
+def generate_skeleton(
+    fw_id: str,
+    name: str,
+    source_url: str,
+    search_sources: list[str] | None = None,
+    circular_sources: list[str] | None = None,
+    keywords: list[str] | None = None,
+) -> str:
     """Generate a framework YAML skeleton with placeholder content."""
+    from urllib.parse import urlparse
+
+    # Auto-derive source domain from source_url
+    parsed = urlparse(source_url)
+    source_domain = parsed.netloc.lstrip("www.") if parsed.netloc else ""
+
+    # Build search_sources list
+    if search_sources:
+        search_lines = "\n".join(f'  - "{u}"' for u in search_sources)
+    else:
+        search_lines = f'  - "{source_url}"'
+
+    # Build circular_sources list
+    if circular_sources:
+        circular_lines = "\n".join(f'  - "{u}"' for u in circular_sources)
+    else:
+        circular_lines = '  []'
+
+    # Build keywords list
+    if keywords:
+        keyword_lines = "\n".join(f'  - "{k}"' for k in keywords)
+    else:
+        keyword_lines = '  - ""  # Fill in: keywords to detect relevant new circulars'
 
     skeleton = f"""# {name}
 # Source: {source_url}
@@ -381,7 +411,8 @@ def generate_skeleton(fw_id: str, name: str, source_url: str) -> str:
 # 1. Fill in the domains section with control domains from the regulation
 # 2. For each domain, specify whether it is organizational or technical
 # 3. For technical domains, add relevant AWS Config rules and guardrails
-# 4. Run: python scripts/scaffold_framework.py --validate frameworks/{fw_id}.yaml
+# 4. Run: python scripts/scaffold_framework.py --suggest-checks frameworks/{fw_id}.yaml
+# 5. Run: python scripts/scaffold_framework.py --validate frameworks/{fw_id}.yaml
 
 id: {fw_id}
 name: "{name}"
@@ -390,21 +421,19 @@ source_url: "{source_url}"
 last_verified: "{date.today().isoformat()}"
 
 source_domains:
-  - ""  # Fill in: domain name from the source_url (e.g. "gdpr-info.eu")
+  - "{source_domain}"
 
 activation: opt_in
 activation_param: "is_{fw_id}_regulated"
 
 search_sources:
-  - "{source_url}"
+{search_lines}
 
-circular_sources: []
-  # Fill in: URLs of pages that list new circulars or amendments
-  # Example: "https://regulator-site.gov/circulars"
+circular_sources:
+{circular_lines}
 
 keywords:
-  # Fill in: keywords to detect relevant new circulars on listing pages
-  - ""
+{keyword_lines}
 
 penalty_default: ""  # Fill in: default penalty text shown on gaps
 
@@ -776,6 +805,18 @@ def main() -> None:
     parser.add_argument("--name", type=str, help="Full framework name.")
     parser.add_argument("--source-url", type=str, help="Primary regulatory source URL.")
     parser.add_argument(
+        "--search-sources", type=str, default="",
+        help="Comma-separated URLs for regulatory text search."
+    )
+    parser.add_argument(
+        "--circular-sources", type=str, default="",
+        help="Comma-separated URLs of circular listing pages for update detection."
+    )
+    parser.add_argument(
+        "--keywords", type=str, default="",
+        help="Comma-separated keywords for filtering relevant circulars."
+    )
+    parser.add_argument(
         "--output", type=str,
         help="Output path for generated file. Default: frameworks/<id>.yaml"
     )
@@ -794,7 +835,17 @@ def main() -> None:
             )
             sys.exit(1)
 
-        skeleton = generate_skeleton(args.id, args.name, args.source_url)
+        # Parse comma-separated list params
+        search_src = [s.strip() for s in args.search_sources.split(",") if s.strip()] if args.search_sources else None
+        circular_src = [s.strip() for s in args.circular_sources.split(",") if s.strip()] if args.circular_sources else None
+        kw_list = [k.strip() for k in args.keywords.split(",") if k.strip()] if args.keywords else None
+
+        skeleton = generate_skeleton(
+            args.id, args.name, args.source_url,
+            search_sources=search_src,
+            circular_sources=circular_src,
+            keywords=kw_list,
+        )
 
         output_path = Path(args.output) if args.output else FRAMEWORKS_DIR / f"{args.id}.yaml"
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -806,9 +857,10 @@ def main() -> None:
         print()
         print("Next steps:")
         print(f"  1. Edit {output_path} and fill in the domain definitions")
-        print(f"  2. Validate: python scripts/scaffold_framework.py --validate {output_path}")
-        print(f"  3. Build manifest: python scripts/build_manifest.py")
-        print(f"  4. Run tests: PYTHONPATH=src python3 -m pytest tests/ -v")
+        print(f"  2. Suggest checks: python scripts/scaffold_framework.py --suggest-checks {output_path}")
+        print(f"  3. Validate: python scripts/scaffold_framework.py --validate {output_path}")
+        print(f"  4. Build manifest: python scripts/build_manifest.py")
+        print(f"  5. Run tests: PYTHONPATH=src python3 -m pytest tests/ -v")
 
     elif args.validate:
         filepath = Path(args.validate)

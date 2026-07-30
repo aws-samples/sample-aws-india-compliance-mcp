@@ -39,6 +39,24 @@ python scripts/scaffold_framework.py --new \
     --source-url "https://gdpr-info.eu"
 ```
 
+You can also pre-populate regulatory search and update-detection metadata:
+
+```bash
+python scripts/scaffold_framework.py --new \
+    --id gdpr \
+    --name "EU General Data Protection Regulation" \
+    --source-url "https://gdpr-info.eu" \
+    --search-sources "https://gdpr-info.eu,https://edpb.europa.eu" \
+    --circular-sources "https://edpb.europa.eu/our-work-tools/general-guidance" \
+    --keywords "data protection,controller,processor"
+```
+
+| Option | Description |
+|--------|-------------|
+| `--search-sources` | Comma-separated URLs for regulatory text search |
+| `--circular-sources` | Comma-separated URLs of circular listing pages for update detection |
+| `--keywords` | Comma-separated keywords for filtering relevant circulars |
+
 This creates `src/aws_india_compliance/frameworks/gdpr.yaml` with placeholder
 content and inline instructions.
 
@@ -170,7 +188,16 @@ keywords:
   - "supervisory authority"
 ```
 
-### Step 6: Validate
+### Step 6: Suggest Checks (Optional)
+
+```bash
+python scripts/scaffold_framework.py --suggest-checks src/aws_india_compliance/frameworks/gdpr.yaml
+```
+
+This analyzes the domains and `config_rules` already defined in your YAML and
+suggests additional declarative checks you may want to add for better coverage.
+
+### Step 7: Validate
 
 ```bash
 python scripts/scaffold_framework.py --validate src/aws_india_compliance/frameworks/gdpr.yaml
@@ -184,7 +211,7 @@ This checks:
 - Guardrail IDs use correct format (AWS-GR_UPPERCASE)
 - Check definitions have all required fields
 
-### Step 7: Rebuild the Manifest
+### Step 8: Rebuild the Manifest
 
 ```bash
 python scripts/build_manifest.py
@@ -192,7 +219,7 @@ python scripts/build_manifest.py
 
 This regenerates `control_mappings.json` from all YAML files.
 
-### Step 8: Run Tests
+### Step 9: Run Tests
 
 ```bash
 PYTHONPATH=src python -m pytest tests/ -v
@@ -200,7 +227,7 @@ PYTHONPATH=src python -m pytest tests/ -v
 
 All existing tests should still pass. Your new framework is additive.
 
-### Step 9: Submit a Pull Request
+### Step 10: Submit a Pull Request
 
 ```bash
 git checkout -b add-framework-gdpr
