@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.3] - 2026-07-30
+
+### Fixed
+- MCP SDK v2+ compatibility: added fallback import for `mcp.server.mcpserver.MCPServer` while retaining v1 `mcp.server.fastmcp.FastMCP` support
+- Synced `__version__` in `__init__.py` with `pyproject.toml`
+
+## [0.2.1] - 2026-07-24
+
+### Changed
+- Version bump for patch release
+
 ## [0.2.0] - 2026-05-05
 
 ### Added
