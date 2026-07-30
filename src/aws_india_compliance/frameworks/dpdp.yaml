@@ -1,15 +1,14 @@
 # Digital Personal Data Protection Act 2023 + Rules 2025
-# Source: https://dpdpact.in
-# Last updated: 2026-06-30
+# Source: https://www.meity.gov.in/data-protection-framework
+# Last updated: 2026-07-30
 
 id: dpdp
 name: "Digital Personal Data Protection Act 2023 + Rules 2025"
 version: "Act 2023 + Rules notified November 14, 2025"
-source_url: "https://dpdpact.in"
-last_verified: "2026-06-30"
+source_url: "https://www.meity.gov.in/data-protection-framework"
+last_verified: "2026-07-30"
 
 source_domains:
-  - "dpdpact.in"
   - "meity.gov.in"
   - "egazette.gov.in"
 
@@ -17,7 +16,7 @@ activation: always
 activation_param: ""
 
 search_sources:
-  - "https://dpdpact.in"
+  - "https://www.meity.gov.in/data-protection-framework"
 
 circular_sources: []
 
