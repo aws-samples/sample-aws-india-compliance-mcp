@@ -195,9 +195,13 @@ def scan_aws_account(
         # Build framework activation flags from the frameworks string param.
         # This allows any registered framework to be activated without adding
         # individual boolean params to this tool signature.
+        # Use frameworks="all" to activate every registered framework.
         extra_flags: dict[str, bool] = {"is_irdai_regulated": is_irdai_regulated}
         if frameworks.strip():
-            requested_ids = [f.strip().lower() for f in frameworks.split(",") if f.strip()]
+            if frameworks.strip().lower() == "all":
+                requested_ids = framework_registry.get_ids()
+            else:
+                requested_ids = [f.strip().lower() for f in frameworks.split(",") if f.strip()]
             for fw_id in requested_ids:
                 fw = framework_registry.get(fw_id)
                 if fw:

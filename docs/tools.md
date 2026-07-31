@@ -17,7 +17,7 @@ Discover resources via AWS Config and assess against all active frameworks.
 | `is_rbi_regulated` | bool | false | RBI-regulated entity |
 | `is_sebi_regulated` | bool | false | SEBI-regulated entity |
 | `is_irdai_regulated` | bool | false | IRDAI-regulated entity |
-| `frameworks` | string | (empty) | Comma-separated framework IDs to assess (e.g. "dpdp,rbi,irdai"). Preferred way to activate frameworks. Overrides boolean flags for listed frameworks. |
+| `frameworks` | string | (empty) | Comma-separated framework IDs to assess (e.g. "dpdp,rbi,irdai"), or "all" to activate every registered framework. Preferred way to activate frameworks. Overrides boolean flags for listed frameworks. |
 | `aggregator_name` | string | (auto) | Config Aggregator name for org-wide scan |
 | `sebi_entity_tier` | string | (none) | SEBI tier: "mii", "qualified_re", "other_re" |
 | `exceptions` | string | (none) | JSON string of exception rules |
@@ -114,6 +114,7 @@ aws-india-compliance-admin apply      # Apply proposed changes to framework YAML
 | What you want to do | Example prompt |
 |---------------------|----------------|
 | Scan a single account | "Scan my AWS account in ap-south-1 for DPDP and RBI compliance" |
+| Scan all frameworks | "Scan my account against all frameworks" |
 | Scan your organization | "Scan my AWS organization for compliance" |
 | Scan with SEBI | "Scan my AWS account as a SEBI MII entity" |
 | Drill into gaps | "Show me all critical DPDP gaps" |
