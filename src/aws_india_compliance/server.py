@@ -136,6 +136,7 @@ def scan_aws_account(
     is_significant_data_fiduciary: bool = False,
     is_rbi_regulated: bool = False,
     is_sebi_regulated: bool = False,
+    is_irdai_regulated: bool = False,
     aggregator_name: str = "",
     sebi_entity_tier: str = "",
     exceptions: str = "",
@@ -192,6 +193,7 @@ def scan_aws_account(
             exceptions=parsed_exceptions,
             filter_tags=parsed_filter_tags,
             exclude_tags=parsed_exclude_tags,
+            extra_framework_flags={"is_irdai_regulated": is_irdai_regulated},
         )
         scan_end = datetime.utcnow()
 

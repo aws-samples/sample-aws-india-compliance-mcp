@@ -239,8 +239,9 @@ def assess(
     exceptions: list[dict] | None = None,
     filter_tags: dict[str, str] | None = None,
     exclude_tags: dict[str, str] | None = None,
+    extra_framework_flags: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
-    """Run compliance assessment against DPDP, RBI, SEBI, and CERT-In domains.
+    """Run compliance assessment against registered compliance frameworks.
 
     Performs per-resource checks based on resource type and configuration
     properties. Returns posture scores, gap list, and component counts.
@@ -595,6 +596,8 @@ def assess(
         "is_rbi_regulated": is_rbi,
         "is_sebi_regulated": is_sebi,
     }
+    if extra_framework_flags:
+        framework_flags.update(extra_framework_flags)
     declarative_satisfied: dict[str, set] = {}
     evaluate_declarative_checks(
         filtered_components, framework_flags, _gap, tracker, declarative_satisfied
