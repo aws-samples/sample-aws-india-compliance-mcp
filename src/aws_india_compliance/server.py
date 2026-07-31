@@ -137,6 +137,7 @@ def scan_aws_account(
     is_rbi_regulated: bool = False,
     is_sebi_regulated: bool = False,
     is_irdai_regulated: bool = False,
+    frameworks: str = "",
     aggregator_name: str = "",
     sebi_entity_tier: str = "",
     exceptions: str = "",
@@ -144,7 +145,7 @@ def scan_aws_account(
     exclude_tags: str = "",
     save_to_file: bool = False,
 ) -> str:
-    """Scan AWS account resources and assess compliance against Indian regulatory frameworks.
+    """Scan AWS account resources and assess compliance against regulatory frameworks.
 
     Use this when the user says: "scan my AWS account", "scan my AWS organization",
     "check my AWS compliance", or "assess my infrastructure".
@@ -157,11 +158,15 @@ def scan_aws_account(
         is_significant_data_fiduciary: Whether the org is an SDF under DPDP Act.
         is_rbi_regulated: Whether the org is regulated by RBI.
         is_sebi_regulated: Whether the org is regulated by SEBI.
+        is_irdai_regulated: Whether the org is regulated by IRDAI.
+        frameworks: Comma-separated framework IDs to assess (e.g. "dpdp,rbi,irdai").
+            This is the preferred way to activate frameworks. Overrides individual
+            boolean flags for any framework listed here. Empty = use boolean flags.
         aggregator_name: Config Aggregator name for org-wide scan. Empty = auto-discover.
         sebi_entity_tier: SEBI entity tier ("mii", "qualified_re", "other_re").
         exceptions: JSON string of exception rules for gap suppression.
-        filter_tags: JSON string of {key: value} pairs — include only matching resources.
-        exclude_tags: JSON string of {key: value} pairs — exclude matching resources.
+        filter_tags: JSON string of {key: value} pairs, include only matching resources.
+        exclude_tags: JSON string of {key: value} pairs, exclude matching resources.
         save_to_file: If True, save full report JSON to the reports/ directory.
 
     Returns:
@@ -186,6 +191,25 @@ def scan_aws_account(
             return json.dumps({"error": "No resources found. Ensure AWS Config recorder is enabled.", "region": region})
 
         scan_start = datetime.utcnow()
+
+        # Build framework activation flags from the frameworks string param.
+        # This allows any registered framework to be activated without adding
+        # individual boolean params to this tool signature.
+        extra_flags: dict[str, bool] = {"is_irdai_regulated": is_irdai_regulated}
+        if frameworks.strip():
+            requested_ids = [f.strip().lower() for f in frameworks.split(",") if f.strip()]
+            for fw_id in requested_ids:
+                fw = framework_registry.get(fw_id)
+                if fw:
+                    param = fw.get("activation_param", "")
+                    if param:
+                        extra_flags[param] = True
+                    # Also set the legacy boolean flags for backward compat
+                    if fw_id == "rbi":
+                        is_rbi_regulated = True
+                    elif fw_id == "sebi":
+                        is_sebi_regulated = True
+
         result = assess(
             components, is_significant_data_fiduciary, is_rbi_regulated,
             is_sebi=is_sebi_regulated,
@@ -193,7 +217,7 @@ def scan_aws_account(
             exceptions=parsed_exceptions,
             filter_tags=parsed_filter_tags,
             exclude_tags=parsed_exclude_tags,
-            extra_framework_flags={"is_irdai_regulated": is_irdai_regulated},
+            extra_framework_flags=extra_flags,
         )
         scan_end = datetime.utcnow()
 

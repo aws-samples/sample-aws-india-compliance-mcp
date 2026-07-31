@@ -17,6 +17,7 @@ Discover resources via AWS Config and assess against all active frameworks.
 | `is_rbi_regulated` | bool | false | RBI-regulated entity |
 | `is_sebi_regulated` | bool | false | SEBI-regulated entity |
 | `is_irdai_regulated` | bool | false | IRDAI-regulated entity |
+| `frameworks` | string | (empty) | Comma-separated framework IDs to assess (e.g. "dpdp,rbi,irdai"). Preferred way to activate frameworks. Overrides boolean flags for listed frameworks. |
 | `aggregator_name` | string | (auto) | Config Aggregator name for org-wide scan |
 | `sebi_entity_tier` | string | (none) | SEBI tier: "mii", "qualified_re", "other_re" |
 | `exceptions` | string | (none) | JSON string of exception rules |
