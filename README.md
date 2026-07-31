@@ -123,7 +123,7 @@ Full documentation is available in the [docs/](docs/) directory:
 
 - Python 3.10+
 - AWS Config recorder enabled in target accounts/regions
-- IAM credentials with read-only access (see [Security](docs/security.md))
+- IAM credentials with read-only access ([minimum IAM policy](docs/security.md#minimum-iam-policy) uses only 20 actions with explicit Deny on destructive operations)
 - For org-wide scans: a Config Aggregator
 
 ## Tests
