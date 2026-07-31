@@ -9,7 +9,7 @@
 | **Activation** | opt_in |
 | **Activation Param** | `is_irdai_regulated` |
 | **Domains** | 12 |
-| **Declarative Checks** | 27 |
+| **Declarative Checks** | 30 |
 | **Default Penalty** | As per Insurance Act 1938 and IRDAI enforcement framework |
 
 ## Control Domains
@@ -225,13 +225,13 @@
 
 ## Assessment Checks
 
-This framework has **27 declarative checks** 
-(23 resource-level, 4 architecture-level).
+This framework has **30 declarative checks** 
+(23 resource-level, 7 architecture-level).
 
 | Type | Match | Domain | Risk | Gap |
 |------|-------|--------|------|-----|
 | Resource | `S3::Bucket` | 2 | high | S3 bucket lacks encryption at rest |
-| Resource | `S3::Bucket` | 2 | high | S3 bucket allows public read access |
+| Resource | `S3::Bucket` | 2 | critical | S3 bucket allows public access (insurance data exposure risk |
 | Resource | `RDS::DB` | 2 | high | RDS instance not encrypted at rest |
 | Resource | `DynamoDB::Table` | 2 | high | DynamoDB table not encrypted with KMS |
 | Resource | `IAM::Role` | 4 | critical | IAM role has admin-level access policy |
@@ -243,8 +243,8 @@ This framework has **27 declarative checks**
 | Resource | `RDS::DB` | 7 | medium | RDS instance backups not enabled |
 | Resource | `S3::Bucket` | 7 | medium | S3 bucket lacks versioning for data recovery |
 | Resource | `RDS::DB` | 7 | medium | RDS instance not configured for Multi-AZ |
-| Architecture | `guardduty` | 9 | critical | GuardDuty not enabled for threat detection |
-| Architecture | `securityhub` | 9 | critical | Security Hub not enabled for centralized findings |
+| Architecture | `guardduty` | 9 | critical | GuardDuty not enabled for threat detection (6-hour CERT-In r |
+| Architecture | `securityhub` | 9 | critical | Security Hub not enabled for centralized incident findings |
 | Architecture | `vpc` | 10 | high | VPC Flow Logs not enabled |
 | Resource | `EC2::SecurityGroup` | 10 | high | Security group allows SSH from 0.0.0.0/0 |
 | Resource | `EC2::Instance` | 10 | high | EC2 instance has a public IP address |
@@ -252,11 +252,14 @@ This framework has **27 declarative checks**
 | Resource | `EC2::Instance` | 11 | high | EBS volumes not encrypted at rest |
 | Resource | `S3::Bucket` | 11 | high | S3 bucket does not enforce TLS for requests |
 | Resource | `KMS::Key` | 11 | medium | KMS customer-managed key automatic rotation not enabled |
-| Architecture | `cloudtrail` | 12 | critical | CloudTrail is not enabled |
+| Architecture | `cloudtrail` | 12 | critical | CloudTrail is not enabled (mandatory for IRDAI annual IS aud |
 | Resource | `CloudTrail::Trail` | 12 | high | CloudTrail log file validation is disabled |
 | Resource | `CloudTrail::Trail` | 12 | high | CloudTrail logs not encrypted with KMS |
 | Resource | `S3::Bucket` | 12 | medium | S3 bucket lacks access logging |
 | Resource | `Logs::LogGroup` | 12 | medium | CloudWatch log group retention below 180 days |
+| Architecture | `config` | 1 | low | AWS Config not detected (required for continuous compliance  |
+| Architecture | `ssm` | 3 | low | Systems Manager not detected (required for asset inventory p |
+| Architecture | `identitystore` | 5 | low | IAM Identity Center not detected (recommended for employee l |
 
 ## Regulatory Monitoring
 
@@ -283,4 +286,4 @@ This framework has **27 declarative checks**
 
 **Domain 12 (Audit and Compliance):** Audit report must be submitted to IRDAI within 90 days of financial year end or 30 days of audit completion, whichever is earlier. Annual IS audit by CERT-In empanelled auditor is mandatory.
 
-*Auto-generated on 2026-07-30 from `frameworks/irdai.yaml`.*
+*Auto-generated on 2026-07-31 from `frameworks/irdai.yaml`.*

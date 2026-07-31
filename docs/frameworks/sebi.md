@@ -143,4 +143,4 @@ This framework has **10 declarative checks**
 **Monitoring Keywords:**
 `cyber security, cyber resilience, cscrf, cloud framework, information security, soc, incident, data protection`
 
-*Auto-generated on 2026-07-30 from `frameworks/sebi.yaml`.*
+*Auto-generated on 2026-07-31 from `frameworks/sebi.yaml`.*

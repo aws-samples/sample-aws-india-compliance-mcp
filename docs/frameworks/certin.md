@@ -142,4 +142,4 @@ This framework has **6 declarative checks**
 **Monitoring Keywords:**
 `cyber incident, incident reporting, log retention, ntp synchronization, data breach, malware, ransomware, ddos`
 
-*Auto-generated on 2026-07-30 from `frameworks/certin.yaml`.*
+*Auto-generated on 2026-07-31 from `frameworks/certin.yaml`.*

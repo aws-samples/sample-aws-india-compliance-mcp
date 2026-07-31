@@ -177,4 +177,4 @@ This framework has **16 declarative checks**
 **Monitoring Keywords:**
 `it governance, cyber security, information security, it risk, outsourcing, cloud, data localization, digital payment, master direction, csite, information technology`
 
-*Auto-generated on 2026-07-30 from `frameworks/rbi.yaml`.*
+*Auto-generated on 2026-07-31 from `frameworks/rbi.yaml`.*

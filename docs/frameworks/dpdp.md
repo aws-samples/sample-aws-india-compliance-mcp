@@ -238,4 +238,4 @@ This framework has **16 declarative checks**
 
 **Domain 10 (Significant Data Fiduciary Obligations):** Rule 13 makes obligations prescriptive: mandatory annual DPIAs and independent audits. Algorithmic assessments required, must ensure technical measures (including algorithmic software) do not pose risk to Data Principal rights. Data localization for government-notified categories. Must submit reports to DPB. No SDFs designated yet as of April 2026.
 
-*Auto-generated on 2026-07-30 from `frameworks/dpdp.yaml`.*
+*Auto-generated on 2026-07-31 from `frameworks/dpdp.yaml`.*
