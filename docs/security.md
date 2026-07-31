@@ -13,7 +13,9 @@ This server performs read-only operations. It does not modify AWS resources.
 ## Transport
 
 - `stdio` by default (local process, no network exposure)
-- For remote deployment over HTTP, set `MCP_API_KEY` and use OAuth 2.1 or equivalent authentication
+- `streamable-http` available for remote deployment (set `MCP_TRANSPORT=streamable-http`)
+- No built-in authentication. For remote deployments, place behind a reverse proxy with authentication (for example API Gateway, ALB with OIDC, or VPN)
+- Binds to `127.0.0.1` by default (configurable via `MCP_HOST`). Do not bind to `0.0.0.0` without authentication in front
 
 ## Credentials
 
@@ -33,15 +35,16 @@ draw.io templates are parsed with `defusedxml`, which blocks XXE, DTD processing
 
 ## Outbound Network
 
-- HTTPS-only calls to regulatory sites (dpdpact.in, rbi.org.in, sebi.gov.in, cert-in.org.in)
-- Domain allowlist enforced (loaded from framework YAML `source_domains` fields)
+- HTTPS-only calls to regulatory sites
+- Domain allowlist enforced dynamically from framework YAML `source_domains` fields (currently: meity.gov.in, egazette.gov.in, rbi.org.in, sebi.gov.in, cert-in.org.in, irdai.gov.in)
 - Response size capped at 5 MB
 - Rate-limited to 10 requests/minute per domain
 - 30-second timeout
+- No outbound calls are made during normal scanning (scanning uses AWS APIs only). Outbound HTTPS is only used by `search_regulatory_text` and `admin check`
 
 ## Minimum IAM Policy
 
-Least-privilege policy covering org-wide Config queries, Control Tower enumeration, and fallback service detection checks.
+Least-privilege policy covering org-wide Config queries, Control Tower enumeration, and fallback service detection checks. Only 20 Allow actions (vs approximately 12,000 in the AWS-managed `ReadOnlyAccess` policy). Includes an explicit Deny statement that blocks destructive operations even if this role is used alongside broader policies.
 
 ```json
 {
@@ -154,7 +157,5 @@ Least-privilege policy covering org-wide Config queries, Control Tower enumerati
   ]
 }
 ```
-
-**20 Allow actions** (vs ~12,000 in `ReadOnlyAccess`). The Deny statement prevents destructive operations even if this role is used alongside broader policies.
 
 For org-wide scans, this policy must be attached in the **management account** (or delegated admin) where the Config Aggregator resides.
