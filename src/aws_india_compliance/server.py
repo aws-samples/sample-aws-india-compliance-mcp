@@ -305,6 +305,7 @@ def scan_aws_account(
                 "rbi": result["rbi_posture"],
                 "sebi": result.get("sebi_posture"),
                 "certin": result.get("certin_posture"),
+                **(result.get("extra_postures") or {}),
             },
             "total_resources": result["total_components"],
             "total_gaps": result["total_gaps"],

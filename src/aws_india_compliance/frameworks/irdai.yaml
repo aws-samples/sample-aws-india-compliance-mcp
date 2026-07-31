@@ -287,8 +287,8 @@ checks:
     property: "public_access_blocked"
     expect: true
     domain: 2
-    risk: high
-    gap: "S3 bucket allows public read access"
+    risk: critical
+    gap: "S3 bucket allows public access (insurance data exposure risk)"
     remediation: "Enable S3 Block Public Access (all 4 settings)"
     reference: "Section 2.1 - Data Classification"
     confidence: high
@@ -410,7 +410,7 @@ checks:
   - match_any: "guardduty"
     domain: 9
     risk: critical
-    gap: "GuardDuty not enabled for threat detection"
+    gap: "GuardDuty not enabled for threat detection (6-hour CERT-In reporting requires detection)"
     remediation: "Enable Amazon GuardDuty"
     reference: "Section 2.10 - Incident Management"
     confidence: high
@@ -418,7 +418,7 @@ checks:
   - match_any: "securityhub"
     domain: 9
     risk: critical
-    gap: "Security Hub not enabled for centralized findings"
+    gap: "Security Hub not enabled for centralized incident findings"
     remediation: "Enable AWS Security Hub"
     reference: "Section 2.10 - Incident Management"
     confidence: high
@@ -497,7 +497,7 @@ checks:
   - match_any: "cloudtrail"
     domain: 12
     risk: critical
-    gap: "CloudTrail is not enabled"
+    gap: "CloudTrail is not enabled (mandatory for IRDAI annual IS audit)"
     remediation: "Enable CloudTrail in all regions"
     reference: "Chapter 3 - Audit Requirements"
     confidence: high
@@ -541,3 +541,30 @@ checks:
     remediation: "Set retention to at least 180 days per CERT-In and IRDAI requirements"
     reference: "Chapter 3 - Audit Requirements, CERT-In Direction 4"
     confidence: high
+
+  # Domain 1: Information Security Governance (organizational, low confidence advisory)
+  - match_any: "config"
+    domain: 1
+    risk: low
+    gap: "AWS Config not detected (required for continuous compliance monitoring per governance framework)"
+    remediation: "Enable AWS Config with recording for all supported resource types"
+    reference: "Chapter 1 - Governance Structure"
+    confidence: low
+
+  # Domain 3: Asset Management (low advisory)
+  - match_any: "ssm"
+    domain: 3
+    risk: low
+    gap: "Systems Manager not detected (required for asset inventory per IRDAI guidelines)"
+    remediation: "Enable Systems Manager and register instances as managed nodes"
+    reference: "Section 2.2 - Asset Management"
+    confidence: low
+
+  # Domain 5: Human Resource Security (organizational advisory)
+  - match_any: "identitystore"
+    domain: 5
+    risk: low
+    gap: "IAM Identity Center not detected (recommended for employee lifecycle management)"
+    remediation: "Consider IAM Identity Center for centralized access management aligned with HR processes"
+    reference: "Section 2.4 - Human Resource Security"
+    confidence: low
